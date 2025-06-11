@@ -9,7 +9,7 @@ metadata:
 data:
   config.json: |
     {
-        "Description": "kube-bench plugin for CIS benchmarks",
+        "Description": "kube-bench plugin for Rancher Compliance",
         "Filters": {
             "LabelSelector": "",
             "Namespaces": "[^\\w-.]+"

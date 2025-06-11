@@ -1,8 +1,159 @@
-apiVersion: cis.cattle.io/v1
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: e2e-test
+---
+apiVersion: compliance.cattle.io/v1
 kind: ClusterScan
 metadata:
   name: k3s-e2e-scan
-  namespace: cis-operator-system
+  namespace: e2e-test
 spec:
-  scanProfileName: k3s-cis-1.9-profile
+  scanProfileName: k3s-e2e-profile
   scoreWarning: pass
+---
+apiVersion: compliance.cattle.io/v1
+kind: ClusterScanProfile
+metadata:
+  name: k3s-e2e-profile
+  namespace: e2e-test
+spec:
+  benchmarkVersion: k3s-e2e-benchmark
+---
+apiVersion: compliance.cattle.io/v1
+kind: ClusterScanBenchmark
+metadata:
+  name: k3s-e2e-benchmark
+  namespace: e2e-test
+spec:
+  clusterProvider: k3s
+  customBenchmarkConfigMapName: test-1
+  customBenchmarkConfigMapNamespace: e2e-test
+  minKubernetesVersion: '1.21.0'
+  maxKubernetesVersion: '1.40.0'
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: test-1
+  namespace: e2e-test
+data:
+  config.yaml: |
+    target_mapping:
+      "test-1":
+        - "master"
+        - "node"
+        - "controlplane"
+        - "etcd"
+
+    master:
+      components:
+        - apiserver
+        - scheduler
+        - controllermanager
+        - etcd
+
+      apiserver:
+        bins:
+          - kube-apiserver
+        confs:
+          - /var/lib/rancher/rke2/agent/pod-manifests/kube-apiserver.yaml
+        defaultconf: /var/lib/rancher/rke2/agent/pod-manifests/kube-apiserver.yaml
+
+      scheduler:
+        bins:
+          - kube-scheduler
+        confs:
+          - /var/lib/rancher/rke2/agent/pod-manifests/kube-scheduler.yaml
+        kubeconfig:
+          - /var/lib/rancher/rke2/server/cred/scheduler.kubeconfig
+        defaultconf: /var/lib/rancher/rke2/agent/pod-manifests/kube-scheduler.yaml
+
+      controllermanager:
+        bins:
+          - kube-controller-manager
+        confs:
+          - /var/lib/rancher/rke2/agent/pod-manifests/kube-controller-manager.yaml
+        kubeconfig:
+          - /var/lib/rancher/rke2/server/cred/controller.kubeconfig
+        defaultconf: /var/lib/rancher/rke2/agent/pod-manifests/kube-controller-manager.yaml
+
+      etcd:
+        bins:
+          - etcd
+        datadirs:
+          - /var/lib/rancher/rke2/server/db/etcd
+        defaultconf: /var/lib/rancher/rke2/agent/pod-manifests/etcd.yaml
+
+      node:
+        components:
+          - kubelet
+          - proxy
+
+        kubelet:
+          defaultkubeconfig: /var/lib/rancher/rke2/agent/kubelet.kubeconfig
+          defaultcafile: /var/lib/rancher/rke2/agent/client-ca.crt
+
+        proxy:
+          defaultkubeconfig: /var/lib/rancher/rke2/agent/kubeproxy.kubeconfig
+
+      policies:
+        components:
+          - policies
+  controlplane.yaml: |
+    controls:
+    version: "test-1"
+    id: 3
+    text: "Test checks for Control Plane"
+    type: "controlplane"
+    groups:
+      - id: 3.1
+        text: "Control Plane: Group 1"
+        checks:
+          - id: 3.1.1
+            text: "Control Plane: Check 1"
+            type: "manual"
+            scored: false
+  etcd.yaml: |
+    controls:
+    version: "test-1"
+    id: 2
+    text: "Test checks for etcd"
+    type: "etcd"
+    groups:
+      - id: 2
+        text: "Etcd: Group 1"
+        checks:
+          - id: 2.1
+            text: "Etcd: Check 1"
+            type: "manual"
+            scored: false
+  master.yaml: |
+    controls:
+    version: "test-1"
+    id: 1
+    text: "Test checks for master node"
+    type: "master"
+    groups:
+      - id: 1.1
+        text: "Master: Group 1"
+        checks:
+          - id: 1.1.1
+            text: "Master: Check 1"
+            type: "manual"
+            scored: false
+  node.yaml: |
+    controls:
+    version: "test-1"
+    id: 4
+    text: "Test checks for Worker Nodes"
+    type: "node"
+    groups:
+      - id: 4.1
+        text: "Node: Group 1"
+        checks:
+          - id: 4.1.1
+            text: "Node: Check 1"
+            type: "manual"
+            scored: false
+---

@@ -3,12 +3,12 @@
 apiVersion: monitoring.coreos.com/v1
 kind: PodMonitor
 metadata:
-  name: rancher-cis-pod-monitor
-  namespace: {{ template "cis.namespace" . }}
+  name: rancher-compliance-pod-monitor
+  namespace: {{ template "app.namespace" . }}
 spec:
   selector:
     matchLabels:
-      cis.cattle.io/operator: cis-operator
+      compliance.cattle.io/operator: compliance-operator
   podMetricsEndpoints:
-  - port: cismetrics
+  - port: metrics
 {{- end }}

@@ -17,18 +17,18 @@ import (
 	"github.com/rancher/wrangler/v3/pkg/generic"
 	"github.com/rancher/wrangler/v3/pkg/genericcondition"
 
-	cisoperatorapi "github.com/rancher/cis-operator/pkg/apis/cis.cattle.io"
-	v1 "github.com/rancher/cis-operator/pkg/apis/cis.cattle.io/v1"
-	cisctlv1 "github.com/rancher/cis-operator/pkg/generated/controllers/cis.cattle.io/v1"
-	cisalert "github.com/rancher/cis-operator/pkg/securityscan/alert"
-	ciscore "github.com/rancher/cis-operator/pkg/securityscan/core"
-	cisjob "github.com/rancher/cis-operator/pkg/securityscan/job"
+	operatorapi "github.com/rancher/compliance-operator/pkg/apis/compliance.cattle.io"
+	v1 "github.com/rancher/compliance-operator/pkg/apis/compliance.cattle.io/v1"
+	ctlv1 "github.com/rancher/compliance-operator/pkg/generated/controllers/compliance.cattle.io/v1"
+	alert "github.com/rancher/compliance-operator/pkg/securityscan/alert"
+	core "github.com/rancher/compliance-operator/pkg/securityscan/core"
+	job "github.com/rancher/compliance-operator/pkg/securityscan/job"
 )
 
 var SonobuoyMasterLabel = map[string]string{"run": "sonobuoy-master"}
 
 func (c *Controller) handleClusterScans(ctx context.Context) error {
-	cisctlv1.RegisterClusterScanGeneratingHandler(ctx, c.scans, c.apply.WithCacheTypes(c.configmaps, c.services).WithGVK(c.jobs.GroupVersionKind()).WithDynamicLookup().WithNoDelete(), "", c.Name,
+	ctlv1.RegisterClusterScanGeneratingHandler(ctx, c.scans, c.apply.WithCacheTypes(c.configmaps, c.services).WithGVK(c.jobs.GroupVersionKind()).WithDynamicLookup().WithNoDelete(), "", c.Name,
 		func(obj *v1.ClusterScan, status v1.ClusterScanStatus) (objects []runtime.Object, _ v1.ClusterScanStatus, _ error) {
 			if obj == nil || obj.DeletionTimestamp != nil {
 				return objects, status, nil
@@ -90,13 +90,13 @@ func (c *Controller) handleClusterScans(ctx context.Context) error {
 						return objects, obj.Status, fmt.Errorf("Retrying ClusterScan %v since another Scan %v is running", obj.Name, c.currentScanName)
 					}
 				}
-				logrus.Infof("Launching a new on demand Job for scan %v to run cis using profile %v", obj.Name, profile.Name)
+				logrus.Infof("Launching a new on demand Job for scan %v to run compliance using profile %v", obj.Name, profile.Name)
 				benchmark, err := c.getClusterScanBenchmark(profile)
 				if err != nil {
 					v1.ClusterScanConditionReconciling.True(obj)
 					return objects, obj.Status, fmt.Errorf("Error when getting Benchmark: %w", err)
 				}
-				cmMap, err := ciscore.NewConfigMaps(obj, profile, benchmark, c.Name, c.ImageConfig, c.configmaps)
+				cmMap, err := core.NewConfigMaps(obj, profile, benchmark, c.Name, c.ImageConfig, c.configmaps)
 				if err != nil {
 					v1.ClusterScanConditionFailed.True(obj)
 					message := fmt.Sprintf("Error when creating ConfigMaps: %v", err)
@@ -105,7 +105,7 @@ func (c *Controller) handleClusterScans(ctx context.Context) error {
 					c.setClusterScanStatusDisplay(obj)
 					return objects, obj.Status, nil
 				}
-				service, err := ciscore.NewService(obj, profile, c.Name)
+				service, err := core.NewService(obj, profile, c.Name)
 				if err != nil {
 					v1.ClusterScanConditionReconciling.True(obj)
 					return objects, obj.Status, fmt.Errorf("Error when creating Service: %w", err)
@@ -116,14 +116,14 @@ func (c *Controller) handleClusterScans(ctx context.Context) error {
 					return objects, obj.Status, fmt.Errorf("Retrying ClusterScan %v since got error: %w", obj.Name, err)
 				}
 
-				objects = append(objects, cisjob.New(obj, profile, benchmark, c.Name, c.ImageConfig, c.configmaps, c.securityScanJobTolerations), cmMap["configcm"], cmMap["plugincm"], cmMap["skipConfigcm"], service)
+				objects = append(objects, job.New(obj, profile, benchmark, c.Name, c.ImageConfig, c.configmaps, c.securityScanJobTolerations), cmMap["configcm"], cmMap["plugincm"], cmMap["skipConfigcm"], service)
 
 				if c.ImageConfig.AlertEnabled &&
 					obj.Spec.ScheduledScanConfig != nil &&
 					obj.Spec.ScheduledScanConfig.ScanAlertRule != nil &&
 					(obj.Spec.ScheduledScanConfig.ScanAlertRule.AlertOnComplete || obj.Spec.ScheduledScanConfig.ScanAlertRule.AlertOnFailure) &&
 					obj.Status.ScanAlertingRuleName == "" {
-					alertRule, err := cisalert.NewPrometheusRule(obj, profile, c.ImageConfig)
+					alertRule, err := alert.NewPrometheusRule(obj, profile, c.ImageConfig)
 					if err != nil {
 						v1.ClusterScanConditionReconciling.True(obj)
 						return objects, obj.Status, fmt.Errorf("Error when trying to create a PrometheusRule: %w", err)
@@ -144,7 +144,7 @@ func (c *Controller) handleClusterScans(ctx context.Context) error {
 				obj.Status.LastRunScanProfileName = profile.Name
 				v1.ClusterScanConditionCreated.True(obj)
 				v1.ClusterScanConditionRunCompleted.Unknown(obj)
-				v1.ClusterScanConditionRunCompleted.Message(obj, "Creating Job to run the CIS scan")
+				v1.ClusterScanConditionRunCompleted.Message(obj, "Creating Job to run the Compliance scan")
 				c.setClusterScanStatusDisplay(obj)
 				c.currentScanName = obj.Name
 				return objects, obj.Status, nil
@@ -174,7 +174,7 @@ func (c *Controller) isScanPresent(scanName string) (bool, error) {
 func (c *Controller) getClusterScanProfile(ctx context.Context, scan *v1.ClusterScan) (*v1.ClusterScanProfile, error) {
 	var profileName string
 	var err error
-	clusterscanprofiles := c.cisFactory.Cis().V1().ClusterScanProfile()
+	clusterscanprofiles := c.complianceFactory.Compliance().V1().ClusterScanProfile()
 	err = c.refreshClusterKubernetesVersion(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("error trying to read cluster's k8s version %w", err)
@@ -201,7 +201,7 @@ func (c *Controller) getClusterScanProfile(ctx context.Context, scan *v1.Cluster
 }
 
 func (c *Controller) getClusterScanBenchmark(profile *v1.ClusterScanProfile) (*v1.ClusterScanBenchmark, error) {
-	clusterscanbmks := c.cisFactory.Cis().V1().ClusterScanBenchmark()
+	clusterscanbmks := c.complianceFactory.Compliance().V1().ClusterScanBenchmark()
 	return clusterscanbmks.Get(profile.Spec.BenchmarkVersion, metav1.GetOptions{})
 }
 
@@ -259,7 +259,7 @@ func (c *Controller) splitLines(s string) []string {
 
 func (c Controller) validateClusterScanProfile(profile *v1.ClusterScanProfile) error {
 	// validate benchmarkVersion is valid and is applicable to this cluster
-	clusterscanbmks := c.cisFactory.Cis().V1().ClusterScanBenchmark()
+	clusterscanbmks := c.complianceFactory.Compliance().V1().ClusterScanBenchmark()
 	benchmark, err := clusterscanbmks.Get(profile.Spec.BenchmarkVersion, metav1.GetOptions{})
 	if err != nil {
 		return err
@@ -303,7 +303,7 @@ func (c Controller) isRunnerPodPresent() error {
 		return fmt.Errorf("error listing jobs: %w", err)
 	}
 	if v2Jobs != 0 {
-		return fmt.Errorf("A rancher-cis-benchmark scan runner job is already running")
+		return fmt.Errorf("A rancher-compliance scan runner job is already running")
 	}
 
 	v2Pods, err := c.listRunnerPods(v1.ClusterScanNS)
@@ -311,15 +311,15 @@ func (c Controller) isRunnerPodPresent() error {
 		return fmt.Errorf("error listing pods: %w", err)
 	}
 	if v2Pods != 0 {
-		return fmt.Errorf("A rancher-cis-benchmark runner pod is already running")
+		return fmt.Errorf("A rancher-compliance runner pod is already running")
 	}
 
-	v1Pods, err := c.listRunnerPods(v1.CISV1NS)
+	v1Pods, err := c.listRunnerPods(v1.ComplianceV1NS)
 	if err != nil {
 		return fmt.Errorf("error listing pods: %w", err)
 	}
 	if v1Pods != 0 {
-		return fmt.Errorf("A CIS v1 rancher-cis-benchmark runner pod is already running")
+		return fmt.Errorf("A Compliance v1 rancher-compliance runner pod is already running")
 	}
 
 	return nil
@@ -327,7 +327,7 @@ func (c Controller) isRunnerPodPresent() error {
 
 func (c Controller) listScanRunnerJobs(namespace string) (int, error) {
 	jobs := c.batchFactory.Batch().V1().Job()
-	set := labels.Set(map[string]string{cisoperatorapi.LabelController: c.Name})
+	set := labels.Set(map[string]string{operatorapi.LabelController: c.Name})
 	jobList, err := jobs.Cache().List(namespace, set.AsSelector())
 	if err != nil {
 		return 0, fmt.Errorf("error listing jobs: %w", err)

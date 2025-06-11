@@ -1,4 +1,4 @@
-module github.com/rancher/cis-operator
+module github.com/rancher/compliance-operator
 
 go 1.23.6
 

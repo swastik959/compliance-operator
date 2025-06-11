@@ -56,8 +56,8 @@ RUN xx-go --wrap && mkdir -p /run/lock
 # a second time (inside the Docker build process). Therefore, removing the need
 # to access the .git dir.
 ARG VERSION
-RUN VERSION=${VERSION} TARGET_BIN=/final/usr/bin/cis-operator make build
-RUN xx-verify --static /final/usr/bin/cis-operator
+RUN VERSION=${VERSION} TARGET_BIN=/final/usr/bin/compliance-operator make build
+RUN xx-verify --static /final/usr/bin/compliance-operator
 
 FROM scratch AS final
 
@@ -67,4 +67,4 @@ COPY --from=builder /final/ /
 USER 65534:65534
 ENV PATH=/usr/bin
 
-CMD ["/usr/bin/cis-operator"]
+CMD ["/usr/bin/compliance-operator"]

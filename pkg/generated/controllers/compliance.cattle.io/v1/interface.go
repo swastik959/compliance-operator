@@ -1,5 +1,5 @@
 /*
-Copyright 2025 Rancher Labs, Inc.
+Copyright 2025 SUSE LLC.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@ limitations under the License.
 package v1
 
 import (
-	v1 "github.com/rancher/cis-operator/pkg/apis/cis.cattle.io/v1"
+	v1 "github.com/rancher/compliance-operator/pkg/apis/compliance.cattle.io/v1"
 	"github.com/rancher/lasso/pkg/controller"
 	"github.com/rancher/wrangler/v3/pkg/generic"
 	"github.com/rancher/wrangler/v3/pkg/schemes"
@@ -48,17 +48,17 @@ type version struct {
 }
 
 func (v *version) ClusterScan() ClusterScanController {
-	return generic.NewNonNamespacedController[*v1.ClusterScan, *v1.ClusterScanList](schema.GroupVersionKind{Group: "cis.cattle.io", Version: "v1", Kind: "ClusterScan"}, "clusterscans", v.controllerFactory)
+	return generic.NewNonNamespacedController[*v1.ClusterScan, *v1.ClusterScanList](schema.GroupVersionKind{Group: "compliance.cattle.io", Version: "v1", Kind: "ClusterScan"}, "clusterscans", v.controllerFactory)
 }
 
 func (v *version) ClusterScanBenchmark() ClusterScanBenchmarkController {
-	return generic.NewNonNamespacedController[*v1.ClusterScanBenchmark, *v1.ClusterScanBenchmarkList](schema.GroupVersionKind{Group: "cis.cattle.io", Version: "v1", Kind: "ClusterScanBenchmark"}, "clusterscanbenchmarks", v.controllerFactory)
+	return generic.NewNonNamespacedController[*v1.ClusterScanBenchmark, *v1.ClusterScanBenchmarkList](schema.GroupVersionKind{Group: "compliance.cattle.io", Version: "v1", Kind: "ClusterScanBenchmark"}, "clusterscanbenchmarks", v.controllerFactory)
 }
 
 func (v *version) ClusterScanProfile() ClusterScanProfileController {
-	return generic.NewNonNamespacedController[*v1.ClusterScanProfile, *v1.ClusterScanProfileList](schema.GroupVersionKind{Group: "cis.cattle.io", Version: "v1", Kind: "ClusterScanProfile"}, "clusterscanprofiles", v.controllerFactory)
+	return generic.NewNonNamespacedController[*v1.ClusterScanProfile, *v1.ClusterScanProfileList](schema.GroupVersionKind{Group: "compliance.cattle.io", Version: "v1", Kind: "ClusterScanProfile"}, "clusterscanprofiles", v.controllerFactory)
 }
 
 func (v *version) ClusterScanReport() ClusterScanReportController {
-	return generic.NewNonNamespacedController[*v1.ClusterScanReport, *v1.ClusterScanReportList](schema.GroupVersionKind{Group: "cis.cattle.io", Version: "v1", Kind: "ClusterScanReport"}, "clusterscanreports", v.controllerFactory)
+	return generic.NewNonNamespacedController[*v1.ClusterScanReport, *v1.ClusterScanReportList](schema.GroupVersionKind{Group: "compliance.cattle.io", Version: "v1", Kind: "ClusterScanReport"}, "clusterscanreports", v.controllerFactory)
 }

@@ -10,8 +10,8 @@ include hack/make/tools.mk
 TARGET_PLATFORMS ?= linux/amd64,linux/arm64
 
 REPO ?= rancher
-IMAGE = $(REPO)/cis-operator:$(TAG)
-TARGET_BIN ?= build/bin/cis-operator
+IMAGE = $(REPO)/compliance-operator:$(TAG)
+TARGET_BIN ?= build/bin/compliance-operator
 ARCH ?= $(shell docker info --format '{{.ClientInfo.Arch}}')
 
 # TARGET_ARCHS defines all GOARCH used for releasing binaries.
@@ -74,7 +74,7 @@ upload: clean ## Build and upload artefacts to the GitHub release.
 	$(MAKE) $(addsuffix -upload, $(TARGET_ARCHS))
 
 %-upload:
-	TARGET_BIN=build/bin/cis-operator-$(subst :,/,$*) \
+	TARGET_BIN=build/bin/compliance-operator-$(subst :,/,$*) \
 	GOARCH=$(subst :,/,$*) GOOS=linux \
 		$(MAKE) build
 

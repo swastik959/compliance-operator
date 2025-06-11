@@ -4,14 +4,14 @@ import (
 	"context"
 	"fmt"
 
-	v1 "github.com/rancher/cis-operator/pkg/apis/cis.cattle.io/v1"
+	v1 "github.com/rancher/compliance-operator/pkg/apis/compliance.cattle.io/v1"
 	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/util/retry"
 )
 
 func (c *Controller) handleClusterScanMetrics(ctx context.Context) error {
-	scans := c.cisFactory.Cis().V1().ClusterScan()
+	scans := c.complianceFactory.Compliance().V1().ClusterScan()
 
 	scans.OnChange(ctx, c.Name, func(_ string, obj *v1.ClusterScan) (*v1.ClusterScan, error) {
 		if obj == nil || obj.DeletionTimestamp != nil {

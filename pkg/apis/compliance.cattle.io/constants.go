@@ -1,4 +1,4 @@
-package cis
+package compliance
 
 const (
 	// LabelController is the name of the cis controller.

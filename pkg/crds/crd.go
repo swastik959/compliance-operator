@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	cisoperator "github.com/rancher/cis-operator/pkg/apis/cis.cattle.io/v1"
+	operator "github.com/rancher/compliance-operator/pkg/apis/compliance.cattle.io/v1"
 	"github.com/rancher/wrangler/v3/pkg/crd"
 	_ "github.com/rancher/wrangler/v3/pkg/generated/controllers/apiextensions.k8s.io" //using init
 	"github.com/rancher/wrangler/v3/pkg/yaml"
@@ -28,7 +28,7 @@ func WriteCRD() error {
 			return err
 		}
 
-		if crd.Name == "clusterscans.cis.cattle.io" {
+		if crd.Name == "clusterscans.compliance.cattle.io" {
 			customizeClusterScan(&crd)
 		}
 		yamlBytes, err := yaml.Export(&crd)
@@ -47,7 +47,7 @@ func WriteCRD() error {
 
 func List() []crd.CRD {
 	return []crd.CRD{
-		newCRD(&cisoperator.ClusterScan{}, func(c crd.CRD) crd.CRD {
+		newCRD(&operator.ClusterScan{}, func(c crd.CRD) crd.CRD {
 			return c.
 				WithColumn("ClusterScanProfile", ".status.lastRunScanProfileName").
 				WithColumn("Total", ".status.summary.total").
@@ -59,16 +59,16 @@ func List() []crd.CRD {
 				WithColumn("LastRunTimestamp", ".status.lastRunTimestamp").
 				WithColumn("CronSchedule", ".spec.scheduledScanConfig.cronSchedule")
 		}),
-		newCRD(&cisoperator.ClusterScanProfile{}, func(c crd.CRD) crd.CRD {
+		newCRD(&operator.ClusterScanProfile{}, func(c crd.CRD) crd.CRD {
 			return c.
 				WithColumn("BenchmarkVersion", ".spec.benchmarkVersion")
 		}),
-		newCRD(&cisoperator.ClusterScanReport{}, func(c crd.CRD) crd.CRD {
+		newCRD(&operator.ClusterScanReport{}, func(c crd.CRD) crd.CRD {
 			return c.
 				WithColumn("LastRunTimestamp", ".spec.lastRunTimestamp").
 				WithColumn("BenchmarkVersion", ".spec.benchmarkVersion")
 		}),
-		newCRD(&cisoperator.ClusterScanBenchmark{}, func(c crd.CRD) crd.CRD {
+		newCRD(&operator.ClusterScanBenchmark{}, func(c crd.CRD) crd.CRD {
 			return c.
 				WithColumn("ClusterProvider", ".spec.clusterProvider").
 				WithColumn("MinKubernetesVersion", ".spec.minKubernetesVersion").
@@ -82,7 +82,7 @@ func List() []crd.CRD {
 func newCRD(obj interface{}, customize func(crd.CRD) crd.CRD) crd.CRD {
 	crd := crd.CRD{
 		GVK: schema.GroupVersionKind{
-			Group:   "cis.cattle.io",
+			Group:   "compliance.cattle.io",
 			Version: "v1",
 		},
 		NonNamespace: true,
@@ -104,8 +104,8 @@ func customizeClusterScan(clusterScan *apiextv1.CustomResourceDefinition) {
 
 	spec := properties["spec"]
 	scoreWarning := spec.Properties["scoreWarning"]
-	passRaw, _ := json.Marshal(cisoperator.ClusterScanPassOnWarning)
-	failRaw, _ := json.Marshal(cisoperator.ClusterScanFailOnWarning)
+	passRaw, _ := json.Marshal(operator.ClusterScanPassOnWarning)
+	failRaw, _ := json.Marshal(operator.ClusterScanFailOnWarning)
 	scoreWarning.Enum = []apiextv1.JSON{{Raw: passRaw}, {Raw: failRaw}}
 	spec.Properties["scoreWarning"] = scoreWarning
 	properties["spec"] = spec

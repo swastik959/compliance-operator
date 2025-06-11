@@ -11,16 +11,8 @@
   ],
   "packageRules": [
     {
-      "matchBaseBranches": ["release/v1.4"],
+      "matchBaseBranches": ["release/v0.1"],
       "extends": ["github>rancher/renovate-config//rancher-2.11#release"]
-    },
-    {
-      "matchBaseBranches": ["release/v1.3"],
-      "extends": ["github>rancher/renovate-config//rancher-2.10#release"]
-    },
-    {
-      "matchBaseBranches": ["release/v1.2"],
-      "extends": ["github>rancher/renovate-config//rancher-2.9#release"]
     }
   ],
   "vulnerabilityAlerts": {

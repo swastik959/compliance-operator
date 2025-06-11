@@ -46,8 +46,8 @@ GO := go
 # - https://github.com/golang/go/blob/4cd201b14b6216e72ffa175747c20d1191e5eb57/src/net/net.go#L39-L81
 # - https://github.com/golang/go/blob/4cd201b14b6216e72ffa175747c20d1191e5eb57/src/os/user/user.go#L6-L17
 GO_TAGS := netgo osusergo
-LINKFLAGS := -X github.com/rancher/cis-operator.Version=$(VERSION) \
-			 -X github.com/rancher/cis-operator.GitCommit=$(COMMIT)
+LINKFLAGS := -X github.com/rancher/compliance-operator.Version=$(VERSION) \
+			 -X github.com/rancher/compliance-operator.GitCommit=$(COMMIT)
 
 # Statically link the binary, unless when building in Darwin.
 ifneq ($(shell uname -s), Darwin)

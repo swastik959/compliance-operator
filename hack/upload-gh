@@ -16,18 +16,18 @@ function check_input(){
 function checksum_file(){
     arch=$1
 
-    if [[ ! -f "${BASE_DIR}/cis-operator-${arch}" ]]; then
-        echo "file ${BASE_DIR}/cis-operator-${arch} not found"
+    if [[ ! -f "${BASE_DIR}/compliance-operator-${arch}" ]]; then
+        echo "file ${BASE_DIR}/compliance-operator-${arch} not found"
         exit 1
     fi
 
-    sha256sum "${BASE_DIR}/cis-operator-${arch}" | sed "s;${BASE_DIR}/;;g" \
+    sha256sum "${BASE_DIR}/compliance-operator-${arch}" | sed "s;${BASE_DIR}/;;g" \
         > "${BASE_DIR}/sha256sum-${arch}.txt"
 }
 
 function upload_files(){
     arch=$1
-    gh release upload "${TAG}" "${BASE_DIR}/cis-operator-${arch}"
+    gh release upload "${TAG}" "${BASE_DIR}/compliance-operator-${arch}"
     gh release upload "${TAG}" "${BASE_DIR}/sha256sum-${arch}.txt"
 }
 

@@ -10,16 +10,15 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 
-	corectlv1 "github.com/rancher/wrangler/v3/pkg/generated/controllers/core/v1"
 	"github.com/rancher/wrangler/v3/pkg/name"
 
-	cisoperatorapi "github.com/rancher/cis-operator/pkg/apis/cis.cattle.io"
-	v1 "github.com/rancher/cis-operator/pkg/apis/cis.cattle.io/v1"
+	operatorapi "github.com/rancher/compliance-operator/pkg/apis/compliance.cattle.io"
+	v1 "github.com/rancher/compliance-operator/pkg/apis/compliance.cattle.io/v1"
 )
 
 // pod events should update the job conditions after validating Done annotation and Output CM
 func (c *Controller) handlePods(ctx context.Context) error {
-	scans := c.cisFactory.Cis().V1().ClusterScan()
+	scans := c.complianceFactory.Compliance().V1().ClusterScan()
 	jobs := c.batchFactory.Batch().V1().Job()
 	pods := c.coreFactory.Core().V1().Pod()
 	pods.OnChange(ctx, c.Name, func(_ string, obj *corev1.Pod) (*corev1.Pod, error) {
@@ -27,19 +26,19 @@ func (c *Controller) handlePods(ctx context.Context) error {
 			return obj, nil
 		}
 		podSelector := labels.SelectorFromSet(labels.Set{
-			cisoperatorapi.LabelController: c.Name,
+			operatorapi.LabelController: c.Name,
 		})
 		// only handle pods launched by securityscan
 		if obj.Labels == nil || !podSelector.Matches(labels.Set(obj.Labels)) {
 			return obj, nil
 		}
 		// Check the annotation to see if it's done processing
-		done, ok := obj.Annotations[cisoperatorapi.SonobuoyCompletionAnnotation]
+		done, ok := obj.Annotations[operatorapi.SonobuoyCompletionAnnotation]
 		if !ok {
 			return nil, nil
 		}
 
-		scanName, ok := obj.Labels[cisoperatorapi.LabelClusterScan]
+		scanName, ok := obj.Labels[operatorapi.LabelClusterScan]
 		if !ok {
 			// malformed
 			return nil, nil
@@ -87,9 +86,4 @@ func (c *Controller) handlePods(ctx context.Context) error {
 		return obj, nil
 	})
 	return nil
-}
-
-func deletePod(podController corectlv1.PodController, pod *corev1.Pod, deletionPropagation metav1.DeletionPropagation) error {
-	logrus.Infof("delete pod called %v", pod.Status.Conditions)
-	return podController.Delete(pod.Namespace, pod.Name, &metav1.DeleteOptions{PropagationPolicy: &deletionPropagation})
 }

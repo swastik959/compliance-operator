@@ -1,14 +1,14 @@
-# Default values for rancher-cis-benchmark.
+# Default values for rancher-compliance.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
 image:
-  cisoperator:
-    repository: rancher/cis-operator
-    tag: v1.4.0-rc.1
+  operator:
+    repository: rancher/compliance-operator
+    tag: v0.0.1-rc.1
   securityScan:
-    repository: rancher/security-scan
-    tag: v0.6.0-rc.2
+    repository: paulinhu/security-scan
+    tag: c8299b4
   sonobuoy:
     repository: rancher/mirrored-sonobuoy-sonobuoy
     tag: v0.57.3
@@ -51,3 +51,5 @@ alerts:
   enabled: false
   severity: warning
   metricsPort: 8080
+
+debug:

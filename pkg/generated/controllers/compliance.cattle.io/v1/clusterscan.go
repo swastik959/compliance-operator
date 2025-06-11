@@ -1,5 +1,5 @@
 /*
-Copyright 2025 Rancher Labs, Inc.
+Copyright 2025 SUSE LLC.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ import (
 	"sync"
 	"time"
 
-	v1 "github.com/rancher/cis-operator/pkg/apis/cis.cattle.io/v1"
+	v1 "github.com/rancher/compliance-operator/pkg/apis/compliance.cattle.io/v1"
 	"github.com/rancher/wrangler/v3/pkg/apply"
 	"github.com/rancher/wrangler/v3/pkg/condition"
 	"github.com/rancher/wrangler/v3/pkg/generic"

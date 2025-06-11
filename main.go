@@ -22,8 +22,8 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
-	cisoperatorapiv1 "github.com/rancher/cis-operator/pkg/apis/cis.cattle.io/v1"
-	cisoperator "github.com/rancher/cis-operator/pkg/securityscan"
+	operatorapiv1 "github.com/rancher/compliance-operator/pkg/apis/compliance.cattle.io/v1"
+	operator "github.com/rancher/compliance-operator/pkg/securityscan"
 
 	// Automatically sets fallback trusted x509 roots, in case they are
 	// not available at runtime. This is required to establish trust
@@ -56,9 +56,9 @@ var (
 
 func main() {
 	app := cli.NewApp()
-	app.Name = "cis-operator"
+	app.Name = "compliance-operator"
 	app.Version = fmt.Sprintf("%s (%s)", Version, GitCommit)
-	app.Usage = "cis-operator needs help!"
+	app.Usage = "compliance-operator needs help!"
 	app.Flags = []cli.Flag{
 		&cli.StringFlag{
 			Name:        "kubeconfig",
@@ -67,14 +67,14 @@ func main() {
 		},
 		&cli.IntFlag{
 			Name:        "threads",
-			EnvVars:     []string{"CIS_OPERATOR_THREADS"},
+			EnvVars:     []string{"OPERATOR_THREADS"},
 			Value:       2,
 			Destination: &threads,
 		},
 		&cli.StringFlag{
 			Name:        "name",
-			EnvVars:     []string{"CIS_OPERATOR_NAME"},
-			Value:       "cis-operator",
+			EnvVars:     []string{"OPERATOR_NAME"},
+			Value:       "compliance-operator",
 			Destination: &name,
 		},
 		&cli.StringFlag{
@@ -102,19 +102,19 @@ func main() {
 			Destination: &sonobuoyImageTag,
 		},
 		&cli.StringFlag{
-			Name:        "cis_metrics_port",
-			EnvVars:     []string{"CIS_METRICS_PORT"},
+			Name:        "metrics_port",
+			EnvVars:     []string{"METRICS_PORT"},
 			Value:       "8080",
 			Destination: &metricsPort,
 		},
 		&cli.BoolFlag{
 			Name:        "debug",
-			EnvVars:     []string{"CIS_OPERATOR_DEBUG"},
+			EnvVars:     []string{"OPERATOR_DEBUG"},
 			Destination: &debug,
 		},
 		&cli.StringFlag{
 			Name:        "alertSeverity",
-			EnvVars:     []string{"CIS_ALERTS_SEVERITY"},
+			EnvVars:     []string{"ALERTS_SEVERITY"},
 			Value:       "warning",
 			Destination: &alertSeverity,
 		},
@@ -132,7 +132,7 @@ func main() {
 		},
 		&cli.BoolFlag{
 			Name:    "alertEnabled",
-			EnvVars: []string{"CIS_ALERTS_ENABLED"},
+			EnvVars: []string{"ALERTS_ENABLED"},
 		},
 	}
 	app.Action = run
@@ -143,7 +143,7 @@ func main() {
 }
 
 func run(c *cli.Context) error {
-	logrus.Info("Starting CIS-Operator")
+	logrus.Info("Starting compliance-operator")
 
 	ctx := context.Background()
 	handler := signals.SetupSignalHandler()
@@ -181,7 +181,7 @@ func run(c *cli.Context) error {
 		logrus.Fatalf("failed to find kubeconfig: %v", err)
 	}
 
-	imgConfig := &cisoperatorapiv1.ScanImageConfig{
+	imgConfig := &operatorapiv1.ScanImageConfig{
 		SecurityScanImage:    securityScanImage,
 		SecurityScanImageTag: securityScanImageTag,
 		SonobuoyImage:        sonobuoyImage,
@@ -192,10 +192,10 @@ func run(c *cli.Context) error {
 	}
 
 	if err := validateConfig(imgConfig); err != nil {
-		logrus.Fatalf("Error starting CIS-Operator: %v", err)
+		logrus.Fatalf("Error starting compliance-operator: %v", err)
 	}
 
-	ctl, err := cisoperator.NewController(ctx, kubeConfig, cisoperatorapiv1.ClusterScanNS, name, imgConfig, securityScanJobTolerations)
+	ctl, err := operator.NewController(ctx, kubeConfig, operatorapiv1.ClusterScanNS, name, imgConfig, securityScanJobTolerations)
 	if err != nil {
 		logrus.Fatalf("Error building controller: %s", err.Error())
 	}
@@ -211,11 +211,11 @@ func run(c *cli.Context) error {
 
 	<-handler
 	ctx.Done()
-	logrus.Info("Registered CIS controller")
+	logrus.Info("Registered Compliance controller")
 	return nil
 }
 
-func validateConfig(imgConfig *cisoperatorapiv1.ScanImageConfig) error {
+func validateConfig(imgConfig *operatorapiv1.ScanImageConfig) error {
 	if imgConfig.SecurityScanImage == "" {
 		return errors.New("No Security-Scan Image specified")
 	}

@@ -1,6 +1,6 @@
 {{/* Ensure namespace is set the same everywhere */}}
-{{- define "cis.namespace" -}}
-  {{- .Release.Namespace | default "cis-operator-system" -}}
+{{- define "app.namespace" -}}
+  {{- .Release.Namespace | default "rancher-compliance-system" -}}
 {{- end -}}
 
 {{- define "system_default_registry" -}}

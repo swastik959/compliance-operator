@@ -2,10 +2,10 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: cis-admin
+  name: compliance-admin
 rules:
   - apiGroups:
-      - cis.cattle.io
+      - compliance.cattle.io
     resources:
       - clusterscanbenchmarks
       - clusterscanprofiles
@@ -15,22 +15,21 @@ rules:
   - apiGroups:
       - catalog.cattle.io
     resources: ["apps"]
-    resourceNames: ["rancher-cis-benchmark"]
+    resourceNames: ["rancher-compliance"]
     verbs: ["get", "watch", "list"]
   - apiGroups:
       - ""
     resources:
       - configmaps
-    verbs:
-      - '*'
+    verbs: ["create", "update", "delete", "patch","get", "watch", "list"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: cis-view
+  name: compliance-view
 rules:
   - apiGroups:
-      - cis.cattle.io
+      - compliance.cattle.io
     resources:
       - clusterscanbenchmarks
       - clusterscanprofiles
@@ -40,7 +39,7 @@ rules:
   - apiGroups:
       - catalog.cattle.io
     resources: ["apps"]
-    resourceNames: ["rancher-cis-benchmark"]
+    resourceNames: ["rancher-compliance"]
     verbs: ["get", "watch", "list"]
   - apiGroups:
       - ""

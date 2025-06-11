@@ -14,7 +14,7 @@ export IMAGE="${IMAGE}"
 export SECURITY_SCAN_IMAGE="$(yq .image.securityScan.repository < ./chart/values.yaml):$(yq .image.securityScan.tag < ./chart/values.yaml)"
 export SONOBUOY_IMAGE="$(yq .image.sonobuoy.repository < ./chart/values.yaml):$(yq .image.sonobuoy.tag < ./chart/values.yaml)"
 
-CLUSTER_NAME="cis-op-e2e-${RANDOM}"
+CLUSTER_NAME="compliance-op-e2e-${RANDOM}"
 E2E_TIMEOUT_SECONDS=200
 
 CANCELLING=""
@@ -34,13 +34,13 @@ function pull_image() {
 }
 
 function dump_logs() {
-  ${KUBECTL} get pods -n cis-operator-system --show-labels
+  ${KUBECTL} get pods -n rancher-compliance-system --show-labels
   echo "RUNNER LOGS:"
-  ${KUBECTL} logs -n cis-operator-system -l app.kubernetes.io/instance=security-scan-runner-k3s-e2e-scan || true
+  ${KUBECTL} logs -n rancher-compliance-system -l app.kubernetes.io/instance=security-scan-runner-k3s-e2e-scan || true
   echo "SONOBUOY LOGS (rancher-kube-bench):"
-  ${KUBECTL} logs -n cis-operator-system -l component=sonobuoy -c rancher-kube-bench || true
+  ${KUBECTL} logs -n rancher-compliance-system -l component=sonobuoy -c rancher-kube-bench || true
   echo "SONOBUOY LOGS (sonobuoy-worker):"
-  ${KUBECTL} logs -n cis-operator-system -l component=sonobuoy -c sonobuoy-worker || true    
+  ${KUBECTL} logs -n rancher-compliance-system -l component=sonobuoy -c sonobuoy-worker || true    
 }
 
 echo "Running E2E tests"
@@ -62,26 +62,27 @@ ${K3D} image import "${IMAGE}" -c "${CLUSTER_NAME}"
 pull_image "${SECURITY_SCAN_IMAGE}"
 pull_image "${SONOBUOY_IMAGE}"
 
-# cis-operator may have intermittent issues if key components
+# compliance-operator may have intermittent issues if key components
 # from the cluster aren't ready.
 echo "> Wait for k3d base components to be ready"
 ${KUBECTL} wait node "k3d-${CLUSTER_NAME}-server-0" --for=condition=ready --timeout=45s
 ${KUBECTL} wait --timeout=60s --for=condition=ready -n kube-system pod -l app=local-path-provisioner
 ${KUBECTL} wait --timeout=60s --for=condition=ready -n kube-system pod -l k8s-app=kube-dns
 
-echo "> Deploying cis-operator"
+echo "> Deploying compliance-operator"
 ${KUBECTL} apply -f ./crds
 
-${HELM} install --create-namespace --namespace cis-operator-system \
-  --set "image.cisoperator.repository=${IMAGE%%:*}" \
-  --set "image.cisoperator.tag=${IMAGE#*:}" \
-  cis-benchmark ./chart
+${HELM} install --create-namespace --namespace rancher-compliance-system \
+  --set "image.operator.repository=${IMAGE%%:*}" \
+  --set "image.operator.tag=${IMAGE#*:}" \
+  --set "debug=true" \
+  rancher-compliance ./chart
 
-echo "> Wait for cis-operator to be ready"
+echo "> Wait for compliance-operator to be ready"
 # Can't kubectl wait before the deployment schedules the pod, so
 # wait 10 seconds for that to happen first.
 sleep 10
-${KUBECTL} wait --for=condition=ready -n cis-operator-system pod -l cis.cattle.io/operator=cis-operator --timeout=30s
+${KUBECTL} wait --for=condition=ready -n rancher-compliance-system pod -l compliance.cattle.io/operator=compliance-operator --timeout=30s
 
 echo "> Create ClusterScan"
 ${KUBECTL} apply -f tests/k3s-bench-test.yaml
@@ -89,7 +90,7 @@ ${KUBECTL} apply -f tests/k3s-bench-test.yaml
 ${RUNNER} exec "k3d-${CLUSTER_NAME}-server-0" /usr/local/bin/kube-apiserver &
 
 # Keep trying to check if the ClusterScan had any tests that passed.
-# This is a good indication that all the mechanics of cis-operator
+# This is a good indication that all the mechanics of compliance-operator
 # are working as expected.
 #
 # As soon as passing tests are detected, exit the e2e. If none is found,
@@ -107,7 +108,7 @@ do
     fail=$(echo "${json}" | jq '.fail')
     
     if [ "${passed}" -gt "0" ]; then
-      echo "> cis-operator worked successfully"
+      echo "> compliance-operator worked successfully"
       
       ${KUBECTL} get ClusterScan -o yaml
       ${KUBECTL} get ClusterScanReport -o yaml -A || true

@@ -1,6 +1,6 @@
-# cis-operator [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/rancher/cis-operator/badge)](https://scorecard.dev/viewer/?uri=github.com/rancher/cis-operator)
+# compliance-operator [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/rancher/compliance-operator/badge)](https://scorecard.dev/viewer/?uri=github.com/rancher/compliance-operator)
 
-The cis-operator enables running CIS benchmark security scans on a Kubernetes cluster and generate compliance reports that can be downloaded.
+The compliance-operator enables running Compliance security scans on a Kubernetes cluster and generate compliance reports that can be downloaded.
 Benchmarks tests and the execution logic lives on [rancher/security-scan].
 
 ## Building
@@ -12,12 +12,12 @@ Benchmarks tests and the execution logic lives on [rancher/security-scan].
 1. Install the custom resource definitions:
 - `kubectl apply -f crds/`
 2. Install the operator
-`./bin/cis-operator`
+`./bin/compliance-operator`
 
 
 ## Branches and Releases
 ### General information
-The current branch strategy for `rancher/cis-operator` is laid out below:
+The current branch strategy for `rancher/compliance-operator` is laid out below:
 
 | Branch                | Tag      |Security-Scan          | Rancher                   |
 |-----------------------|----------|-----------------------|---------------------------|
@@ -29,7 +29,7 @@ The current branch strategy for `rancher/cis-operator` is laid out below:
 
 Note that it aligns with Rancher Manager releases to maximize compatibility
 within the ecosystem. This includes k8s dependencies that the Rancher release
-aims to support, meaning that cis-operator should use the same k8s minor release
+aims to support, meaning that compliance-operator should use the same k8s minor release
 that the Rancher release line it aims to support.
 
 Active development takes place against `main`. Release branches are only used for
@@ -41,10 +41,10 @@ for official compatibility information.
 ### How future release branches should be generated
 Follow these guidelines when releasing new branches:
 1. Name convention to be used: `release/v1.x.x`.
-2. Update the [Branch and Releases](https://github.com/rancher/cis-operator#branches-and-releases) table with the new branches and remove the no longer needed branches.
+2. Update the [Branch and Releases](https://github.com/rancher/compliance-operator#branches-and-releases) table with the new branches and remove the no longer needed branches.
 
 ## License
-Copyright (c) 2019 [Rancher Labs, Inc.](http://rancher.com)
+Copyright (c) 2025 SUSE LLC.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

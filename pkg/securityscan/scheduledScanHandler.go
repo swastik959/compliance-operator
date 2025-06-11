@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	v1 "github.com/rancher/cis-operator/pkg/apis/cis.cattle.io/v1"
+	v1 "github.com/rancher/compliance-operator/pkg/apis/compliance.cattle.io/v1"
 	"github.com/rancher/wrangler/v3/pkg/genericcondition"
 	"github.com/rancher/wrangler/v3/pkg/name"
 	"github.com/robfig/cron"
@@ -17,7 +17,7 @@ import (
 )
 
 func (c *Controller) handleScheduledClusterScans(ctx context.Context) error {
-	scheduledScans := c.cisFactory.Cis().V1().ClusterScan()
+	scheduledScans := c.complianceFactory.Compliance().V1().ClusterScan()
 
 	scheduledScans.OnChange(ctx, c.Name, func(_ string, obj *v1.ClusterScan) (*v1.ClusterScan, error) {
 		if obj == nil || obj.DeletionTimestamp != nil {
@@ -107,7 +107,7 @@ func (c *Controller) getRetentionCount(scan *v1.ClusterScan) int {
 }
 
 func (c *Controller) rescheduleScan(scan *v1.ClusterScan) error {
-	scans := c.cisFactory.Cis().V1().ClusterScan()
+	scans := c.complianceFactory.Compliance().V1().ClusterScan()
 	cronSchedule, err := c.getCronSchedule(scan)
 	if err != nil {
 		return fmt.Errorf("Cannot reschedule, Error parsing invalid cron string for schedule: %w", err)
@@ -121,7 +121,7 @@ func (c *Controller) rescheduleScan(scan *v1.ClusterScan) error {
 }
 
 func (c *Controller) purgeOldClusterScanReports(obj *v1.ClusterScan) error {
-	reports := c.cisFactory.Cis().V1().ClusterScanReport()
+	reports := c.complianceFactory.Compliance().V1().ClusterScanReport()
 	retention := c.getRetentionCount(obj)
 	allClusterScanReportsList, err := reports.List(metav1.ListOptions{})
 	if err != nil {
@@ -153,7 +153,7 @@ func (c *Controller) purgeOldClusterScanReports(obj *v1.ClusterScan) error {
 }
 
 func (c *Controller) deleteClusterScanReportWithRetry(name string) error {
-	reports := c.cisFactory.Cis().V1().ClusterScanReport()
+	reports := c.complianceFactory.Compliance().V1().ClusterScanReport()
 	delErr := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		var err error
 		err = reports.Delete(name, &metav1.DeleteOptions{})

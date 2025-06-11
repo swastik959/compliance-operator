@@ -7,31 +7,31 @@ metadata:
     app: rancher-monitoring
 spec:
   groups:
-  - name: rancher-cis-scan-exporter
+  - name: rancher-compliance-exporter
     rules:
 {{- if .alertOnFailure }}
-    - alert: CISScanHasFailures
+    - alert: ScanHasFailures
       annotations:
-        description: CIS ClusterScan "{{ .scanName }}" has {{ "{{ $value }}" }} test failures or warnings
-        summary: CIS ClusterScan has tests failures
+        description: Compliance ClusterScan "{{ .scanName }}" has {{ "{{ $value }}" }} test failures or warnings
+        summary: Compliance ClusterScan has tests failures
       {{- if .failOnWarn }}
-      expr: cis_scan_num_tests_fail{scan_name="{{ .scanName }}"} > 0 or ON(scan_name) cis_scan_num_tests_warn{scan_name="{{ .scanName }}"} > 0
+      expr: compliance_scan_num_tests_fail{scan_name="{{ .scanName }}"} > 0 or ON(scan_name) compliance_scan_num_tests_warn{scan_name="{{ .scanName }}"} > 0
       {{- else }}
-      expr: cis_scan_num_tests_fail{scan_name="{{ .scanName }}"} > 0
+      expr: compliance_scan_num_tests_fail{scan_name="{{ .scanName }}"} > 0
       {{- end }}
       for: 1m
       labels:
         severity: {{ .severity }}
-        job: rancher-cis-scan
+        job: rancher-compliance
 {{- end }}
 {{- if .alertOnComplete }}
-    - alert: CISScanHasCompleted
+    - alert: ScanHasCompleted
       annotations:
-        description: CIS ClusterScan "{{ .scanName }}" with Cluster Scan profile  "{{ .scanProfileName }}" has completed.
-        summary: CIS ClusterScan has completed
-      expr: increase(cis_scan_num_scans_complete{scan_name="{{ .scanName }}"}[5m]) > 0
+        description: Compliance ClusterScan "{{ .scanName }}" with Cluster Scan profile  "{{ .scanProfileName }}" has completed.
+        summary: Compliance ClusterScan has completed
+      expr: increase(compliance_scan_num_scans_complete{scan_name="{{ .scanName }}"}[5m]) > 0
       for: 1m
       labels:
         severity: {{ .severity }}
-        job: rancher-cis-scan
+        job: rancher-compliance
 {{- end }}

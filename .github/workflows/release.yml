@@ -49,7 +49,7 @@ jobs:
     - name: Publish manifest
       uses: rancher/ecm-distro-tools/actions/publish-image@master
       with:
-        image: cis-operator
+        image: compliance-operator
         tag: ${{ github.ref_name }}${{ matrix.tag-suffix }}
         platforms: ${{ matrix.platforms }}
 

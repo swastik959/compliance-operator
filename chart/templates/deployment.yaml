@@ -1,26 +1,26 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: cis-operator
-  namespace: {{ template "cis.namespace" . }}
+  name: compliance-operator
+  namespace: {{ template "app.namespace" . }}
   labels:
-    cis.cattle.io/operator: cis-operator
+    compliance.cattle.io/operator: compliance-operator
 spec:
   selector:
     matchLabels:
-      cis.cattle.io/operator: cis-operator
+      compliance.cattle.io/operator: compliance-operator
   template:
     metadata:
       labels:
-        cis.cattle.io/operator: cis-operator
+        compliance.cattle.io/operator: compliance-operator
     spec:
-      serviceAccountName: cis-operator-serviceaccount
+      serviceAccountName: compliance-operator-serviceaccount
       containers:
-      - name: cis-operator
-        image: '{{ template "system_default_registry" . }}{{ .Values.image.cisoperator.repository }}:{{ .Values.image.cisoperator.tag }}'
+      - name: compliance-operator
+        image: '{{ template "system_default_registry" . }}{{ .Values.image.operator.repository }}:{{ .Values.image.operator.tag }}'
         imagePullPolicy: IfNotPresent
         ports:
-        - name: cismetrics
+        - name: metrics
           containerPort: {{ .Values.alerts.metricsPort }}
         env:
         - name: SECURITY_SCAN_IMAGE
@@ -31,16 +31,16 @@ spec:
           value: {{ template "system_default_registry" . }}{{ .Values.image.sonobuoy.repository }}
         - name: SONOBUOY_IMAGE_TAG
           value: {{ .Values.image.sonobuoy.tag }}
-        - name: CIS_ALERTS_METRICS_PORT
+        - name: METRICS_PORT
           value: '{{ .Values.alerts.metricsPort }}'
-        - name: CIS_ALERTS_SEVERITY
+        - name: ALERTS_SEVERITY
           value: {{ .Values.alerts.severity }}
-        - name: CIS_ALERTS_ENABLED
+        - name: ALERTS_ENABLED
           value: {{ .Values.alerts.enabled | default "false" | quote }}
         - name: CLUSTER_NAME
           value: '{{ .Values.global.cattle.clusterName }}'
-        - name: CIS_OPERATOR_DEBUG
-          value: '{{ .Values.image.cisoperator.debug }}'
+        - name: OPERATOR_DEBUG
+          value: '{{ .Values.debug }}'
         {{- if .Values.securityScanJob.overrideTolerations }}
         - name: SECURITY_SCAN_JOB_TOLERATIONS
           value: '{{ .Values.securityScanJob.tolerations | toJson  }}'

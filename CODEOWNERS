@@ -8,6 +8,6 @@
 /package/Dockerfile  @rancher/infracloud-team @rancher/rancher-security
 /tests/              @rancher/infracloud-team @rancher/rancher-security
 
-# rancher-cis-benchmark chart Ownership
+# rancher-compliance chart Ownership
 /chart/              @rancher/infracloud-team @rancher/rancher-security
 /crds/               @rancher/infracloud-team @rancher/rancher-security

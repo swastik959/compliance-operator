@@ -17,8 +17,8 @@ import (
 
 	"time"
 
-	cisoperatorapi "github.com/rancher/cis-operator/pkg/apis/cis.cattle.io"
-	v1 "github.com/rancher/cis-operator/pkg/apis/cis.cattle.io/v1"
+	operatorapi "github.com/rancher/compliance-operator/pkg/apis/compliance.cattle.io"
+	v1 "github.com/rancher/compliance-operator/pkg/apis/compliance.cattle.io/v1"
 	"github.com/rancher/wrangler/v3/pkg/name"
 )
 
@@ -26,8 +26,8 @@ var sonobuoyWorkerLabel = map[string]string{"sonobuoy-plugin": "rancher-kube-ben
 
 // job events (successful completions) should remove the job after validatinf Done annotation and Output CM
 func (c *Controller) handleJobs(ctx context.Context) error {
-	scans := c.cisFactory.Cis().V1().ClusterScan()
-	reports := c.cisFactory.Cis().V1().ClusterScanReport()
+	scans := c.complianceFactory.Compliance().V1().ClusterScan()
+	reports := c.complianceFactory.Compliance().V1().ClusterScanReport()
 	jobs := c.batchFactory.Batch().V1().Job()
 
 	jobs.OnChange(ctx, c.Name, func(_ string, obj *batchv1.Job) (*batchv1.Job, error) {
@@ -35,14 +35,14 @@ func (c *Controller) handleJobs(ctx context.Context) error {
 			return obj, nil
 		}
 		jobSelector := labels.SelectorFromSet(labels.Set{
-			cisoperatorapi.LabelController: c.Name,
+			operatorapi.LabelController: c.Name,
 		})
 		// avoid commandeering jobs from other controllers
 		if obj.Labels == nil || !jobSelector.Matches(labels.Set(obj.Labels)) {
 			return obj, nil
 		}
 		// identify the scan object for this job
-		scanName, ok := obj.Labels[cisoperatorapi.LabelClusterScan]
+		scanName, ok := obj.Labels[operatorapi.LabelClusterScan]
 		if !ok {
 			// malformed, just delete it and move on
 			logrus.Errorf("malformed scan, deleting the job %v", obj.Name)
@@ -130,26 +130,26 @@ func (c *Controller) deleteJob(jobController batchctlv1.JobController, job *batc
 func (c *Controller) getScanResults(ctx context.Context, scan *v1.ClusterScan) (*v1.ClusterScanSummary, *v1.ClusterScanReport, error) {
 	configmaps := c.coreFactory.Core().V1().ConfigMap()
 	//get the output configmap and create a report
-	outputConfigName := strings.Join([]string{`cisscan-output-for`, scan.Name}, "-")
+	outputConfigName := strings.Join([]string{`scan-output-for`, scan.Name}, "-")
 	cm, err := configmaps.Cache().Get(v1.ClusterScanNS, outputConfigName)
 	if err != nil {
-		return nil, nil, fmt.Errorf("cisScanHandler: Updated: error fetching configmap %v: %v", outputConfigName, err)
+		return nil, nil, fmt.Errorf("jobHandler: Updated: error fetching configmap %v: %v", outputConfigName, err)
 	}
 	outputBytes := []byte(cm.Data[v1.DefaultScanOutputFileName])
-	cisScanSummary, err := c.getScanSummary(outputBytes)
+	scanSummary, err := c.getScanSummary(outputBytes)
 	if err != nil {
-		return nil, nil, fmt.Errorf("cisScanHandler: Updated: error getting report from configmap %v: %v", outputConfigName, err)
+		return nil, nil, fmt.Errorf("jobHandler: Updated: error getting report from configmap %v: %v", outputConfigName, err)
 	}
-	if cisScanSummary == nil {
-		return nil, nil, fmt.Errorf("cisScanHandler: Updated: error: got empty report from configmap %v", outputConfigName)
+	if scanSummary == nil {
+		return nil, nil, fmt.Errorf("jobHandler: Updated: error: got empty report from configmap %v", outputConfigName)
 	}
 
 	scanReport, err := c.createClusterScanReport(ctx, outputBytes, scan)
 	if err != nil {
-		return nil, nil, fmt.Errorf("cisScanHandler: Updated: error getting report from configmap %v: %v", outputConfigName, err)
+		return nil, nil, fmt.Errorf("jobHandler: Updated: error getting report from configmap %v: %v", outputConfigName, err)
 	}
 
-	return cisScanSummary, scanReport, nil
+	return scanSummary, scanReport, nil
 }
 
 func (c *Controller) getScanSummary(outputBytes []byte) (*v1.ClusterScanSummary, error) {
@@ -160,7 +160,7 @@ func (c *Controller) getScanSummary(outputBytes []byte) (*v1.ClusterScanSummary,
 	if r == nil {
 		return nil, nil
 	}
-	cisScanSummary := &v1.ClusterScanSummary{
+	scanSummary := &v1.ClusterScanSummary{
 		Total:         r.Total,
 		Pass:          r.Pass,
 		Fail:          r.Fail,
@@ -168,7 +168,7 @@ func (c *Controller) getScanSummary(outputBytes []byte) (*v1.ClusterScanSummary,
 		Warn:          r.Warn,
 		NotApplicable: r.NotApplicable,
 	}
-	return cisScanSummary, nil
+	return scanSummary, nil
 }
 
 func (c *Controller) createClusterScanReport(ctx context.Context, outputBytes []byte, scan *v1.ClusterScan) (*v1.ClusterScanReport, error) {
@@ -191,7 +191,7 @@ func (c *Controller) createClusterScanReport(ctx context.Context, outputBytes []
 	scanReport.Spec.ReportJSON = string(data[:])
 
 	ownerRef := metav1.OwnerReference{
-		APIVersion: "cis.cattle.io/v1",
+		APIVersion: "compliance.cattle.io/v1",
 		Kind:       "ClusterScan",
 		Name:       scan.Name,
 		UID:        scan.GetUID(),
@@ -207,14 +207,14 @@ func (c *Controller) ensureCleanup(scan *v1.ClusterScan) error {
 	dsPrefix := "sonobuoy-rancher-kube-bench-daemon-set"
 	dsList, err := c.daemonsetCache.List(v1.ClusterScanNS, labels.Set(sonobuoyWorkerLabel).AsSelector())
 	if err != nil {
-		return fmt.Errorf("cis: ensureCleanup: error listing daemonsets: %w", err)
+		return fmt.Errorf("compliance: ensureCleanup: error listing daemonsets: %w", err)
 	}
 	for _, ds := range dsList {
 		if !strings.HasPrefix(ds.Name, dsPrefix) {
 			continue
 		}
 		if e := c.daemonsets.Delete(v1.ClusterScanNS, ds.Name, &metav1.DeleteOptions{}); e != nil && !errors.IsNotFound(e) {
-			return fmt.Errorf("cis: ensureCleanup: error deleting daemonset %v: %v", ds.Name, e)
+			return fmt.Errorf("compliance: ensureCleanup: error deleting daemonset %v: %v", ds.Name, e)
 		}
 	}
 
@@ -222,21 +222,21 @@ func (c *Controller) ensureCleanup(scan *v1.ClusterScan) error {
 	podPrefix := name.SafeConcatName("security-scan-runner", scan.Name)
 	podList, err := c.podCache.List(v1.ClusterScanNS, labels.Set(SonobuoyMasterLabel).AsSelector())
 	if err != nil {
-		return fmt.Errorf("cis: ensureCleanup: error listing pods: %w", err)
+		return fmt.Errorf("compliance: ensureCleanup: error listing pods: %w", err)
 	}
 	for _, pod := range podList {
 		if !strings.HasPrefix(pod.Name, podPrefix) {
 			continue
 		}
 		if e := c.pods.Delete(v1.ClusterScanNS, pod.Name, &metav1.DeleteOptions{}); e != nil && !errors.IsNotFound(e) {
-			return fmt.Errorf("cis: ensureCleanup: error deleting pod %v: %w", pod.Name, e)
+			return fmt.Errorf("compliance: ensureCleanup: error deleting pod %v: %w", pod.Name, e)
 		}
 	}
 
 	// Delete cms
 	cms, err := c.configMapCache.List(v1.ClusterScanNS, labels.NewSelector())
 	if err != nil {
-		return fmt.Errorf("cis: ensureCleanup: error listing cm: %w", err)
+		return fmt.Errorf("compliance: ensureCleanup: error listing cm: %w", err)
 	}
 	for _, cm := range cms {
 		if !strings.Contains(cm.Name, scan.Name) {
@@ -244,7 +244,7 @@ func (c *Controller) ensureCleanup(scan *v1.ClusterScan) error {
 		}
 
 		if e := c.configmaps.Delete(v1.ClusterScanNS, cm.Name, &metav1.DeleteOptions{}); e != nil && !errors.IsNotFound(e) {
-			return fmt.Errorf("cis: ensureCleanup: error deleting cm %v: %w", cm.Name, e)
+			return fmt.Errorf("compliance: ensureCleanup: error deleting cm %v: %w", cm.Name, e)
 		}
 	}
 

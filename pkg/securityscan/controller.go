@@ -13,7 +13,6 @@ import (
 
 	detector "github.com/rancher/kubernetes-provider-detector"
 	"github.com/rancher/wrangler/v3/pkg/apply"
-	"github.com/rancher/wrangler/v3/pkg/crd"
 	appsctl "github.com/rancher/wrangler/v3/pkg/generated/controllers/apps"
 	appsctlv1 "github.com/rancher/wrangler/v3/pkg/generated/controllers/apps/v1"
 	batchctl "github.com/rancher/wrangler/v3/pkg/generated/controllers/batch"
@@ -26,10 +25,9 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 
-	cisoperatorapiv1 "github.com/rancher/cis-operator/pkg/apis/cis.cattle.io/v1"
-	cisoperatorctl "github.com/rancher/cis-operator/pkg/generated/controllers/cis.cattle.io"
-	cisoperatorctlv1 "github.com/rancher/cis-operator/pkg/generated/controllers/cis.cattle.io/v1"
-	"github.com/rancher/cis-operator/pkg/securityscan/scan"
+	operatorapiv1 "github.com/rancher/compliance-operator/pkg/apis/compliance.cattle.io/v1"
+	operatorctl "github.com/rancher/compliance-operator/pkg/generated/controllers/compliance.cattle.io"
+	operatorctlv1 "github.com/rancher/compliance-operator/pkg/generated/controllers/compliance.cattle.io/v1"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -38,16 +36,16 @@ type Controller struct {
 	Name              string
 	ClusterProvider   string
 	KubernetesVersion string
-	ImageConfig       *cisoperatorapiv1.ScanImageConfig
+	ImageConfig       *operatorapiv1.ScanImageConfig
 
-	kcs              *kubernetes.Clientset
-	cfg              *rest.Config
-	coreFactory      *corectl.Factory
-	batchFactory     *batchctl.Factory
-	appsFactory      *appsctl.Factory
-	cisFactory       *cisoperatorctl.Factory
-	apply            apply.Apply
-	monitoringClient v1monitoringclient.MonitoringV1Interface
+	kcs               *kubernetes.Clientset
+	cfg               *rest.Config
+	coreFactory       *corectl.Factory
+	batchFactory      *batchctl.Factory
+	appsFactory       *appsctl.Factory
+	complianceFactory *operatorctl.Factory
+	apply             apply.Apply
+	monitoringClient  v1monitoringclient.MonitoringV1Interface
 
 	mu              *sync.Mutex
 	currentScanName string
@@ -60,7 +58,7 @@ type Controller struct {
 	numTestsPassed   *prometheus.GaugeVec
 	numTestsWarn     *prometheus.GaugeVec
 
-	scans                      cisoperatorctlv1.ClusterScanController
+	scans                      operatorctlv1.ClusterScanController
 	jobs                       batchctlv1.JobController
 	configmaps                 corectlv1.ConfigMapController
 	configMapCache             corectlv1.ConfigMapCache
@@ -73,7 +71,7 @@ type Controller struct {
 }
 
 func NewController(ctx context.Context, cfg *rest.Config, namespace, name string,
-	imgConfig *cisoperatorapiv1.ScanImageConfig, securityScanJobTolerations []corev1.Toleration) (ctl *Controller, err error) {
+	imgConfig *operatorapiv1.ScanImageConfig, securityScanJobTolerations []corev1.Toleration) (ctl *Controller, err error) {
 	if cfg == nil {
 		cfg, err = rest.InClusterConfig()
 		if err != nil {
@@ -114,7 +112,7 @@ func NewController(ctx context.Context, cfg *rest.Config, namespace, name string
 	if err != nil {
 		return nil, err
 	}
-	ctl.cisFactory, err = cisoperatorctl.NewFactoryFromConfig(cfg)
+	ctl.complianceFactory, err = operatorctl.NewFactoryFromConfig(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("Error building securityscan NewFactoryFromConfig: %w", err)
 	}
@@ -141,10 +139,10 @@ func NewController(ctx context.Context, cfg *rest.Config, namespace, name string
 
 	err = initializeMetrics(ctl)
 	if err != nil {
-		return nil, fmt.Errorf("Error registering CIS Metrics: %w", err)
+		return nil, fmt.Errorf("Error registering Compliance Metrics: %w", err)
 	}
 
-	ctl.scans = ctl.cisFactory.Cis().V1().ClusterScan()
+	ctl.scans = ctl.complianceFactory.Compliance().V1().ClusterScan()
 	ctl.jobs = ctl.batchFactory.Batch().V1().Job()
 	ctl.configmaps = ctl.coreFactory.Core().V1().ConfigMap()
 	ctl.configMapCache = ctl.coreFactory.Core().V1().ConfigMap().Cache()
@@ -174,26 +172,7 @@ func (c *Controller) Start(ctx context.Context, threads int, _ time.Duration) er
 	if err := c.handleClusterScanMetrics(ctx); err != nil {
 		return err
 	}
-	return start.All(ctx, threads, c.cisFactory, c.coreFactory, c.batchFactory)
-}
-
-func (c *Controller) registerCRD(ctx context.Context) error {
-	factory, err := crd.NewFactoryFromClient(c.cfg)
-	if err != nil {
-		return err
-	}
-
-	var crds []crd.CRD
-	for _, crdFn := range []func() (*crd.CRD, error){
-		scan.ClusterScanCRD,
-	} {
-		crdef, err := crdFn()
-		if err != nil {
-			return err
-		}
-		crds = append(crds, *crdef)
-	}
-	return factory.BatchCreateCRDs(ctx, crds...).BatchWait()
+	return start.All(ctx, threads, c.complianceFactory, c.coreFactory, c.batchFactory)
 }
 
 func (c *Controller) refreshClusterKubernetesVersion(ctx context.Context) error {
@@ -227,8 +206,8 @@ func detectKubernetesVersion(_ context.Context, k8sClient kubernetes.Interface) 
 func initializeMetrics(ctl *Controller) error {
 	ctl.numTestsFailed = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Name: "cis_scan_num_tests_fail",
-			Help: "Number of test failed in the CIS scans, partioned by scan_name, scan_profile_name",
+			Name: "compliance_scan_num_tests_fail",
+			Help: "Number of test failed in the Compliance scans, partioned by scan_name, scan_profile_name",
 		},
 		[]string{
 			// scan_name will be set to "manual" for on-demand manual scans and the actual name set for the scheduled scans
@@ -244,8 +223,8 @@ func initializeMetrics(ctl *Controller) error {
 
 	ctl.numScansComplete = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Name: "cis_scan_num_scans_complete",
-			Help: "Number of CIS clusterscans completed, partioned by scan_name, scan_profile_name",
+			Name: "compliance_scan_num_scans_complete",
+			Help: "Number of Compliance clusterscans completed, partioned by scan_name, scan_profile_name",
 		},
 		[]string{
 			// scan_name will be set to "manual" for on-demand manual scans and the actual name set for the scheduled scans
@@ -261,8 +240,8 @@ func initializeMetrics(ctl *Controller) error {
 
 	ctl.numTestsTotal = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Name: "cis_scan_num_tests_total",
-			Help: "Total Number of tests run in the CIS scans, partioned by scan_name, scan_profile_name",
+			Name: "compliance_scan_num_tests_total",
+			Help: "Total Number of tests run in the Compliance scans, partioned by scan_name, scan_profile_name",
 		},
 		[]string{
 			// scan_name will be set to "manual" for on-demand manual scans and the actual name set for the scheduled scans
@@ -278,8 +257,8 @@ func initializeMetrics(ctl *Controller) error {
 
 	ctl.numTestsPassed = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Name: "cis_scan_num_tests_pass",
-			Help: "Number of tests passing in the CIS scans, partioned by scan_name, scan_profile_name",
+			Name: "compliance_scan_num_tests_pass",
+			Help: "Number of tests passing in the Compliance scans, partioned by scan_name, scan_profile_name",
 		},
 		[]string{
 			// scan_name will be set to "manual" for on-demand manual scans and the actual name set for the scheduled scans
@@ -295,8 +274,8 @@ func initializeMetrics(ctl *Controller) error {
 
 	ctl.numTestsSkipped = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Name: "cis_scan_num_tests_skipped",
-			Help: "Number of test skipped in the CIS scans, partioned by scan_name, scan_profile_name",
+			Name: "compliance_scan_num_tests_skipped",
+			Help: "Number of test skipped in the Compliance scans, partioned by scan_name, scan_profile_name",
 		},
 		[]string{
 			// scan_name will be set to "manual" for on-demand manual scans and the actual name set for the scheduled scans
@@ -312,8 +291,8 @@ func initializeMetrics(ctl *Controller) error {
 
 	ctl.numTestsNA = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Name: "cis_scan_num_tests_na",
-			Help: "Number of tests not applicable in the CIS scans, partioned by scan_name, scan_profile_name",
+			Name: "compliance_scan_num_tests_na",
+			Help: "Number of tests not applicable in the Compliance scans, partioned by scan_name, scan_profile_name",
 		},
 		[]string{
 			// scan_name will be set to "manual" for on-demand manual scans and the actual name set for the scheduled scans
@@ -329,8 +308,8 @@ func initializeMetrics(ctl *Controller) error {
 
 	ctl.numTestsWarn = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Name: "cis_scan_num_tests_warn",
-			Help: "Number of tests having warn status in the CIS scans, partioned by scan_name, scan_profile_name",
+			Name: "compliance_scan_num_tests_warn",
+			Help: "Number of tests having warn status in the Compliance scans, partioned by scan_name, scan_profile_name",
 		},
 		[]string{
 			// scan_name will be set to "manual" for on-demand manual scans and the actual name set for the scheduled scans

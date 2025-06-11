@@ -1,7 +1,7 @@
 package v1
 
 import (
-	condition "github.com/rancher/cis-operator/pkg/condition"
+	condition "github.com/rancher/compliance-operator/pkg/condition"
 	"github.com/rancher/wrangler/v3/pkg/genericcondition"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -13,19 +13,19 @@ const (
 	ClusterProviderAKS = "aks"
 	ClusterProviderK3s = "k3s"
 
-	CISV1NS                            = "security-scan"
-	ClusterScanNS                      = "cis-operator-system"
-	ClusterScanSA                      = "cis-serviceaccount"
-	ClusterScanConfigMap               = "cis-s-config-cm"
-	ClusterScanPluginsConfigMap        = "cis-s-plugins-cm"
-	ClusterScanUserSkipConfigMap       = "cis-s-user-skip-cm"
+	ComplianceV1NS                     = "security-scan"
+	ClusterScanNS                      = "rancher-compliance-system"
+	ClusterScanSA                      = "compliance-scan-serviceaccount"
+	ClusterScanConfigMap               = "compliance-config-cm"
+	ClusterScanPluginsConfigMap        = "compliance-plugins-cm"
+	ClusterScanUserSkipConfigMap       = "compliance-user-skip-cm"
 	DefaultClusterScanProfileConfigMap = "default-clusterscanprofiles"
-	ClusterScanService                 = "service-rancher-cis-benchmark"
+	ClusterScanService                 = "service-rancher-compliance"
 	DefaultScanOutputFileName          = "output.json"
 	DefaultRetention                   = 3
 	DefaultCronSchedule                = "0 0 * * *"
 	CustomBenchmarkBaseDir             = "/etc/kbs/custombenchmark/cfg"
-	CustomBenchmarkConfigMap           = "cis-bmark-cm"
+	CustomBenchmarkConfigMap           = "compliance-bmark-cm"
 
 	ClusterScanConditionCreated      = condition.Cond("Created")
 	ClusterScanConditionPending      = condition.Cond("Pending")
