@@ -1,0 +1,73 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+    - name: Install Go
+      uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
+      with:
+        go-version: 'stable'
+    - run: make validate
+
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        # Run tests across all platforms, to ensure developers
+        # can use any environment to run basic tests.
+        platform: [ubuntu-latest, windows-latest, macos-latest]
+    
+    runs-on: ${{ matrix.platform }}
+    needs: [ validate ]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+    - name: Install Go
+      uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
+      with:
+        go-version: 'stable'
+  
+    - run: make test
+
+  e2e:
+    strategy:
+      fail-fast: false
+      matrix:
+        # Works on macos-12, but takes a very long time to run so this
+        # is currently disabled.
+        platform: [ubuntu-latest]
+  
+    runs-on: ${{ matrix.platform }}
+    needs: [ validate ]
+
+    steps:
+    - name: Setup docker (MacOS only)
+      if: runner.os == 'macos'
+      run: |
+        brew install docker
+        colima start
+    - name: Setup QEMU
+      uses: docker/setup-qemu-action@29109295f81e9208d7d86ff1c6c12d2833863392 # v3.6.0
+    - name: Setup Docker Buildx
+      uses: docker/setup-buildx-action@b5ca514318bd6ebac0fb2aedd5d36ec1b5c232a2 # v3.10.0
+    - name: Checkout code
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+  
+    - name: Test building images
+      run: make test-image
+
+    - name: E2E Tests
+      run: make e2e

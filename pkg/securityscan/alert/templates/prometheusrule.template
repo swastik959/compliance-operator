@@ -1,0 +1,37 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ .name }}
+  namespace: {{ .namespace }}
+  labels:
+    app: rancher-monitoring
+spec:
+  groups:
+  - name: rancher-compliance-exporter
+    rules:
+{{- if .alertOnFailure }}
+    - alert: ScanHasFailures
+      annotations:
+        description: Compliance ClusterScan "{{ .scanName }}" has {{ "{{ $value }}" }} test failures or warnings
+        summary: Compliance ClusterScan has tests failures
+      {{- if .failOnWarn }}
+      expr: compliance_scan_num_tests_fail{scan_name="{{ .scanName }}"} > 0 or ON(scan_name) compliance_scan_num_tests_warn{scan_name="{{ .scanName }}"} > 0
+      {{- else }}
+      expr: compliance_scan_num_tests_fail{scan_name="{{ .scanName }}"} > 0
+      {{- end }}
+      for: 1m
+      labels:
+        severity: {{ .severity }}
+        job: rancher-compliance
+{{- end }}
+{{- if .alertOnComplete }}
+    - alert: ScanHasCompleted
+      annotations:
+        description: Compliance ClusterScan "{{ .scanName }}" with Cluster Scan profile  "{{ .scanProfileName }}" has completed.
+        summary: Compliance ClusterScan has completed
+      expr: increase(compliance_scan_num_scans_complete{scan_name="{{ .scanName }}"}[5m]) > 0
+      for: 1m
+      labels:
+        severity: {{ .severity }}
+        job: rancher-compliance
+{{- end }}
