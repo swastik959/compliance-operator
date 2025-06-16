@@ -314,14 +314,6 @@ func (c Controller) isRunnerPodPresent() error {
 		return fmt.Errorf("A rancher-compliance runner pod is already running")
 	}
 
-	v1Pods, err := c.listRunnerPods(v1.ComplianceV1NS)
-	if err != nil {
-		return fmt.Errorf("error listing pods: %w", err)
-	}
-	if v1Pods != 0 {
-		return fmt.Errorf("A Compliance v1 rancher-compliance runner pod is already running")
-	}
-
 	return nil
 }
 
