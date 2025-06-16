@@ -1,0 +1,13 @@
+# Default Code Ownership
+*                    @rancher/rancher-security
+
+# Code Ownership for merging renovate PRs
+/go.mod              @rancher/infracloud-team @rancher/rancher-security
+/go.sum              @rancher/infracloud-team @rancher/rancher-security
+/hack/               @rancher/infracloud-team @rancher/rancher-security
+/package/Dockerfile  @rancher/infracloud-team @rancher/rancher-security
+/tests/              @rancher/infracloud-team @rancher/rancher-security
+
+# rancher-compliance chart Ownership
+/chart/              @rancher/infracloud-team @rancher/rancher-security
+/crds/               @rancher/infracloud-team @rancher/rancher-security

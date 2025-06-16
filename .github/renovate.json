@@ -1,0 +1,22 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "github>rancher/renovate-config//rancher-main#release"
+  ],
+  "baseBranches": [
+    "main"
+  ],
+  "ignoreDeps":[
+    "github.com/rancher/lasso"
+  ],
+  "packageRules": [
+    {
+      "matchBaseBranches": ["release/v0.1"],
+      "extends": ["github>rancher/renovate-config//rancher-2.11#release"]
+    }
+  ],
+  "vulnerabilityAlerts": {
+    "enabled": true
+  },
+  "osvVulnerabilityAlerts": true
+}
