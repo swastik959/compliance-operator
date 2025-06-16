@@ -122,7 +122,7 @@ func parseTemplate(_ *operatorapiv1.ClusterScan, name string, text string, data 
 		return nil, err
 	}
 
-	return k8Yaml.NewYAMLOrJSONDecoder(bytes.NewReader([]byte(b.String())), 1000), nil
+	return k8Yaml.NewYAMLOrJSONDecoder(&b, 1000), nil
 }
 
 func getOverrideConfigMapName(cs *operatorapiv1.ClusterScan) string {
