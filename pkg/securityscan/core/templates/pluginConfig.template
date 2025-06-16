@@ -101,7 +101,7 @@ data:
       - name: OVERRIDE_BENCHMARK_VERSION
         value: {{ .benchmarkVersion }}
       - name: VERBOSE
-        value: true
+        value: 'true'
       {{- if .isCustomBenchmark }}
       - name: CONFIG_DIR
         value: {{ .configDir }}
