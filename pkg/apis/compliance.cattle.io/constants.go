@@ -1,7 +1,7 @@
 package compliance
 
 const (
-	// LabelController is the name of the cis controller.
+	// LabelController is the name of the controller.
 	LabelController = GroupName + `/controller`
 
 	// LabelNode is the node being upgraded.
