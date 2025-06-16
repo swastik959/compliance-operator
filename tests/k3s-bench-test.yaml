@@ -1,13 +1,8 @@
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: e2e-test
----
 apiVersion: compliance.cattle.io/v1
 kind: ClusterScan
 metadata:
   name: k3s-e2e-scan
-  namespace: e2e-test
+  namespace: rancher-compliance-system
 spec:
   scanProfileName: k3s-e2e-profile
   scoreWarning: pass
@@ -16,144 +11,207 @@ apiVersion: compliance.cattle.io/v1
 kind: ClusterScanProfile
 metadata:
   name: k3s-e2e-profile
-  namespace: e2e-test
+  namespace: rancher-compliance-system
 spec:
-  benchmarkVersion: k3s-e2e-benchmark
+  benchmarkVersion: sample-ssb-1.0
 ---
 apiVersion: compliance.cattle.io/v1
 kind: ClusterScanBenchmark
 metadata:
-  name: k3s-e2e-benchmark
-  namespace: e2e-test
+  name: sample-ssb-1.0
+  namespace: rancher-compliance-system
 spec:
-  clusterProvider: k3s
-  customBenchmarkConfigMapName: test-1
-  customBenchmarkConfigMapNamespace: e2e-test
-  minKubernetesVersion: '1.21.0'
-  maxKubernetesVersion: '1.40.0'
+  customBenchmarkConfigMapName: sample-ssb-1.0
+  customBenchmarkConfigMapNamespace: rancher-compliance-system
+  minKubernetesVersion: '1.30.0'
+  maxKubernetesVersion: '1.36.0'
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: test-1
-  namespace: e2e-test
+  name: sample-ssb-1.0
+  namespace: rancher-compliance-system
 data:
   config.yaml: |
+    ## Version-specific settings that override the values in cfg/config.yaml
     target_mapping:
-      "test-1":
+      "sample-ssb-1.0":
         - "master"
         - "node"
         - "controlplane"
         - "etcd"
+        - "policies"
 
+    version_mapping:
+      "v1.31.8+rke2r1": "sample-ssb-1.0"
+      "v1.33.1-k3s1": "sample-ssb-1.0"
+    
     master:
       components:
         - apiserver
+        - kubelet
         - scheduler
         - controllermanager
         - etcd
+        - policies
+      apiserver:
+        bins:
+          - containerd
+      kubelet:
+        bins:
+          - containerd
+        defaultkubeconfig: /var/lib/rancher/k3s/agent/kubelet.kubeconfig
+        defaultcafile: /var/lib/rancher/k3s/agent/client-ca.crt
+      scheduler:
+        bins:
+          - containerd
+        kubeconfig:
+          - /var/lib/rancher/k3s/server/cred/scheduler.kubeconfig
+      controllermanager:
+        bins:
+          - containerd
+        kubeconfig:
+          - /var/lib/rancher/k3s/server/cred/controller.kubeconfig
+      etcd:
+        bins:
+          - containerd
+
+    etcd:
+      confs: /var/lib/rancher/k3s/server/db/etcd/config
+
+    node:
+      components:
+        - kubelet
+        - proxy
+      kubelet:
+        bins:
+          - containerd
+        confs:
+          - /var/lib/rancher/k3s/agent/etc/kubelet.conf.d/00-k3s-defaults.conf
+        defaultkubeconfig: /var/lib/rancher/k3s/agent/kubelet.kubeconfig
+        defaultcafile: /var/lib/rancher/k3s/agent/client-ca.crt
+      proxy:
+        bins:
+          - containerd
+        defaultkubeconfig: /var/lib/rancher/k3s/agent/kubeproxy.kubeconfig
+    
+    controlplane:
+      components:
+        - apiserver
 
       apiserver:
         bins:
-          - kube-apiserver
-        confs:
-          - /var/lib/rancher/rke2/agent/pod-manifests/kube-apiserver.yaml
-        defaultconf: /var/lib/rancher/rke2/agent/pod-manifests/kube-apiserver.yaml
+          - "kube-apiserver"
+          - "hyperkube apiserver"
+          - "hyperkube kube-apiserver"
+          - "apiserver"
+          - "containerd"
 
-      scheduler:
-        bins:
-          - kube-scheduler
-        confs:
-          - /var/lib/rancher/rke2/agent/pod-manifests/kube-scheduler.yaml
-        kubeconfig:
-          - /var/lib/rancher/rke2/server/cred/scheduler.kubeconfig
-        defaultconf: /var/lib/rancher/rke2/agent/pod-manifests/kube-scheduler.yaml
+    managedservices:
+      components: []
 
-      controllermanager:
-        bins:
-          - kube-controller-manager
-        confs:
-          - /var/lib/rancher/rke2/agent/pod-manifests/kube-controller-manager.yaml
-        kubeconfig:
-          - /var/lib/rancher/rke2/server/cred/controller.kubeconfig
-        defaultconf: /var/lib/rancher/rke2/agent/pod-manifests/kube-controller-manager.yaml
+    policies:
+      components:
+        - policies
 
-      etcd:
-        bins:
-          - etcd
-        datadirs:
-          - /var/lib/rancher/rke2/server/db/etcd
-        defaultconf: /var/lib/rancher/rke2/agent/pod-manifests/etcd.yaml
-
-      node:
-        components:
-          - kubelet
-          - proxy
-
-        kubelet:
-          defaultkubeconfig: /var/lib/rancher/rke2/agent/kubelet.kubeconfig
-          defaultcafile: /var/lib/rancher/rke2/agent/client-ca.crt
-
-        proxy:
-          defaultkubeconfig: /var/lib/rancher/rke2/agent/kubeproxy.kubeconfig
-
-      policies:
-        components:
-          - policies
   controlplane.yaml: |
     controls:
-    version: "test-1"
-    id: 3
-    text: "Test checks for Control Plane"
+    version: "sample-ssb-1.0"
+    id: c
+    text: "Control Plane Configuration"
     type: "controlplane"
     groups:
-      - id: 3.1
-        text: "Control Plane: Group 1"
+      - id: c-2
+        text: "Logging"
         checks:
-          - id: 3.1.1
-            text: "Control Plane: Check 1"
-            type: "manual"
-            scored: false
+          - id: c-2-1
+            text: "Sample check control plane"
+            audit: "echo --audit-policy-file some/file"
+            tests:
+              test_items:
+                - flag: "--audit-policy-file"
+                  set: true
+            scored: true
+
   etcd.yaml: |
     controls:
-    version: "test-1"
-    id: 2
-    text: "Test checks for etcd"
+    version: "sample-ssb-1.0"
+    id: e
+    text: "Etcd Node Configuration"
     type: "etcd"
     groups:
-      - id: 2
-        text: "Etcd: Group 1"
+      - id: e
+        text: "Etcd Node Configuration"
         checks:
-          - id: 2.1
-            text: "Etcd: Check 1"
-            type: "manual"
-            scored: false
+          - id: e-1
+            text: "Sample check etcd"
+            audit: "echo --cert-file some/file"
+            tests:
+              test_items:
+                - flag: "--cert-file"
+                  set: true
+            scored: true
+
   master.yaml: |
     controls:
-    version: "test-1"
-    id: 1
-    text: "Test checks for master node"
+    version: "sample-ssb-1.0"
+    id: m
+    text: "Control Plane Security Configuration"
     type: "master"
     groups:
-      - id: 1.1
-        text: "Master: Group 1"
+      - id: m.1
+        text: "Control Plane Node Configuration Files"
         checks:
-          - id: 1.1.1
-            text: "Master: Check 1"
-            type: "manual"
-            scored: false
+          - id: m.1.1
+            text: "Sample check master"
+            audit: "echo --cni-file some/file"
+            tests:
+              test_items:
+                - flag: "--cni-file"
+                  set: true
+            scored: true
+
   node.yaml: |
     controls:
-    version: "test-1"
-    id: 4
-    text: "Test checks for Worker Nodes"
+    version: "sample-ssb-1.0"
+    id: w
+    text: "Worker Node Security Configuration"
     type: "node"
     groups:
-      - id: 4.1
-        text: "Node: Group 1"
+      - id: w-1
+        text: "Worker Node Configuration Files"
         checks:
-          - id: 4.1.1
-            text: "Node: Check 1"
-            type: "manual"
-            scored: false
+          - id: w-1-1
+            text: "Sample check Worker Node"
+            audit: "echo --kubeconfig-file some/file"
+            tests:
+              test_items:
+                - flag: "--kubeconfig-file"
+                  set: true
+            remediation: |
+              Run the below command on each k3s worker node:
+              chmod 600 $proxykubeconfig
+            scored: true
+
+  policies.yaml: |
+    controls:
+    version: "sample-ssb-1.0"
+    id: p
+    text: "Kubernetes Policies"
+    type: "policies"
+    groups:
+      - id: p-1
+        text: "RBAC and Service Accounts"
+        checks:
+          - id: p-1-1
+            text: "Sample check Policies"
+            audit: echo cluster-admin
+            use_multiple_values: true
+            tests:
+              test_items:
+                - flag: "cluster-admin"
+                  compare:
+                    op: valid_elements
+                    value: cluster-admin, helm-kube-system-traefik, helm-kube-system-traefik-crd
+            scored: true
 ---

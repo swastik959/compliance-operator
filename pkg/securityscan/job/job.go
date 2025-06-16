@@ -194,6 +194,9 @@ func New(clusterscan *operatorapiv1.ClusterScan, clusterscanprofile *operatorapi
 						}, {
 							Name:  `OUTPUT_CONFIGMAPNAME`,
 							Value: strings.Join([]string{`scan-output-for`, clusterscan.Name}, "-"),
+						}, {
+							Name:  `VERBOSE`,
+							Value: "true",
 						}},
 						Ports: []corev1.ContainerPort{{
 							ContainerPort: 8080,
