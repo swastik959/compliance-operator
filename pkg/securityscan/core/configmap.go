@@ -161,8 +161,10 @@ func getCustomBenchmarkConfigMap(benchmark *operatorapiv1.ClusterScanBenchmark, 
 	if benchmark.Spec.CustomBenchmarkConfigMapNamespace == operatorapiv1.ClusterScanNS {
 		return userConfigmap, nil
 	}
-	//copy the configmap to ClusterScanNS so that cis scan pod can find it for volume mount
-	//this will be cleaned up after scan job finishes
+
+	// Copy the configmap to ClusterScanNS so that the security scan pod
+	// can find it for volume mount this will be cleaned up after scan
+	// job finishes.
 	configmapCopy := corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "v1",

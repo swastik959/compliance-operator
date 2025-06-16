@@ -5,10 +5,10 @@
 image:
   operator:
     repository: rancher/compliance-operator
-    tag: v0.0.1-rc.1
+    tag: v0.0.1
   securityScan:
-    repository: paulinhu/security-scan
-    tag: c8299b4
+    repository: rancher/security-scan
+    tag: v0.7.0-rc.1
   sonobuoy:
     repository: rancher/mirrored-sonobuoy-sonobuoy
     tag: v0.57.3
