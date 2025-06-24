@@ -15,7 +15,7 @@ import (
 	"github.com/rancher/wrangler/v3/pkg/kubeconfig"
 	"github.com/rancher/wrangler/v3/pkg/signals"
 	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 
 	"log"
 	"net/http"
@@ -55,97 +55,97 @@ var (
 )
 
 func main() {
-	app := cli.NewApp()
-	app.Name = "compliance-operator"
-	app.Version = fmt.Sprintf("%s (%s)", Version, GitCommit)
-	app.Usage = "compliance-operator needs help!"
-	app.Flags = []cli.Flag{
-		&cli.StringFlag{
-			Name:        "kubeconfig",
-			EnvVars:     []string{"KUBECONFIG"},
-			Destination: &kubeConfig,
+	app := &cli.Command{
+		Name:    "compliance-operator",
+		Version: fmt.Sprintf("%s (%s)", Version, GitCommit),
+		Usage:   "compliance-operator needs help!",
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:        "kubeconfig",
+				Sources:     cli.EnvVars("KUBECONFIG"),
+				Destination: &kubeConfig,
+			},
+			&cli.IntFlag{
+				Name:        "threads",
+				Sources:     cli.EnvVars("OPERATOR_THREADS"),
+				Value:       2,
+				Destination: &threads,
+			},
+			&cli.StringFlag{
+				Name:        "name",
+				Sources:     cli.EnvVars("OPERATOR_NAME"),
+				Value:       "compliance-operator",
+				Destination: &name,
+			},
+			&cli.StringFlag{
+				Name:        "security-scan-image",
+				Sources:     cli.EnvVars("SECURITY_SCAN_IMAGE"),
+				Value:       "rancher/security-scan",
+				Destination: &securityScanImage,
+			},
+			&cli.StringFlag{
+				Name:        "security-scan-image-tag",
+				Sources:     cli.EnvVars("SECURITY_SCAN_IMAGE_TAG"),
+				Value:       "latest",
+				Destination: &securityScanImageTag,
+			},
+			&cli.StringFlag{
+				Name:        "sonobuoy-image",
+				Sources:     cli.EnvVars("SONOBUOY_IMAGE"),
+				Value:       "rancher/sonobuoy-sonobuoy",
+				Destination: &sonobuoyImage,
+			},
+			&cli.StringFlag{
+				Name:        "sonobuoy-image-tag",
+				Sources:     cli.EnvVars("SONOBUOY_IMAGE_TAG"),
+				Value:       "latest",
+				Destination: &sonobuoyImageTag,
+			},
+			&cli.StringFlag{
+				Name:        "metrics_port",
+				Sources:     cli.EnvVars("METRICS_PORT"),
+				Value:       "8080",
+				Destination: &metricsPort,
+			},
+			&cli.BoolFlag{
+				Name:        "debug",
+				Sources:     cli.EnvVars("OPERATOR_DEBUG"),
+				Destination: &debug,
+			},
+			&cli.StringFlag{
+				Name:        "alertSeverity",
+				Sources:     cli.EnvVars("ALERTS_SEVERITY"),
+				Value:       "warning",
+				Destination: &alertSeverity,
+			},
+			&cli.StringFlag{
+				Name:        "clusterName",
+				Sources:     cli.EnvVars("CLUSTER_NAME"),
+				Value:       "",
+				Destination: &clusterName,
+			},
+			&cli.StringFlag{
+				Name:        "security-scan-job-tolerations",
+				Sources:     cli.EnvVars("SECURITY_SCAN_JOB_TOLERATIONS"),
+				Value:       "",
+				Destination: &securityScanJobTolerationsVal,
+			},
+			&cli.BoolFlag{
+				Name:    "alertEnabled",
+				Sources: cli.EnvVars("ALERTS_ENABLED"),
+			},
 		},
-		&cli.IntFlag{
-			Name:        "threads",
-			EnvVars:     []string{"OPERATOR_THREADS"},
-			Value:       2,
-			Destination: &threads,
-		},
-		&cli.StringFlag{
-			Name:        "name",
-			EnvVars:     []string{"OPERATOR_NAME"},
-			Value:       "compliance-operator",
-			Destination: &name,
-		},
-		&cli.StringFlag{
-			Name:        "security-scan-image",
-			EnvVars:     []string{"SECURITY_SCAN_IMAGE"},
-			Value:       "rancher/security-scan",
-			Destination: &securityScanImage,
-		},
-		&cli.StringFlag{
-			Name:        "security-scan-image-tag",
-			EnvVars:     []string{"SECURITY_SCAN_IMAGE_TAG"},
-			Value:       "latest",
-			Destination: &securityScanImageTag,
-		},
-		&cli.StringFlag{
-			Name:        "sonobuoy-image",
-			EnvVars:     []string{"SONOBUOY_IMAGE"},
-			Value:       "rancher/sonobuoy-sonobuoy",
-			Destination: &sonobuoyImage,
-		},
-		&cli.StringFlag{
-			Name:        "sonobuoy-image-tag",
-			EnvVars:     []string{"SONOBUOY_IMAGE_TAG"},
-			Value:       "latest",
-			Destination: &sonobuoyImageTag,
-		},
-		&cli.StringFlag{
-			Name:        "metrics_port",
-			EnvVars:     []string{"METRICS_PORT"},
-			Value:       "8080",
-			Destination: &metricsPort,
-		},
-		&cli.BoolFlag{
-			Name:        "debug",
-			EnvVars:     []string{"OPERATOR_DEBUG"},
-			Destination: &debug,
-		},
-		&cli.StringFlag{
-			Name:        "alertSeverity",
-			EnvVars:     []string{"ALERTS_SEVERITY"},
-			Value:       "warning",
-			Destination: &alertSeverity,
-		},
-		&cli.StringFlag{
-			Name:        "clusterName",
-			EnvVars:     []string{"CLUSTER_NAME"},
-			Value:       "",
-			Destination: &clusterName,
-		},
-		&cli.StringFlag{
-			Name:        "security-scan-job-tolerations",
-			EnvVars:     []string{"SECURITY_SCAN_JOB_TOLERATIONS"},
-			Value:       "",
-			Destination: &securityScanJobTolerationsVal,
-		},
-		&cli.BoolFlag{
-			Name:    "alertEnabled",
-			EnvVars: []string{"ALERTS_ENABLED"},
-		},
+		Action: run,
 	}
-	app.Action = run
 
-	if err := app.Run(os.Args); err != nil {
+	if err := app.Run(context.TODO(), os.Args); err != nil {
 		logrus.Fatal(err)
 	}
 }
 
-func run(c *cli.Context) error {
+func run(ctx context.Context, c *cli.Command) error {
 	logrus.Info("Starting compliance-operator")
 
-	ctx := context.Background()
 	handler := signals.SetupSignalHandler()
 	go func() {
 		<-handler
