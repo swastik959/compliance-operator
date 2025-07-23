@@ -78,13 +78,8 @@ upload: clean ## Build and upload artefacts to the GitHub release.
 	GOARCH=$(subst :,/,$*) GOOS=linux \
 		$(MAKE) build
 	
-	@echo "Checking if release $(TAG) exists..."
-	@if ! gh release view "$(TAG)" > /dev/null 2>&1; then \
-		echo "Creating release $(TAG)"; \
-		gh release create "$(TAG)" --title "$(TAG)" --notes "Release $(TAG)"; \
-	else \
-		echo "Release $(TAG) already exists"; \
-	fi
+	@echo "Uploading assets for release $(TAG)..."
+	@gh release upload "$(TAG)" path/to/your/assets/* --clobber
 
 	TAG=$(TAG) \
 		./hack/upload-gh $(subst :,/,$*)
