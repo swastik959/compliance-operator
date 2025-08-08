@@ -14,3 +14,16 @@ This chart installs the following components:
 - Alerting Resources - Rancher's Compliance application lets you run a cluster scan on a schedule, and send alerts when scans finish.
     - If you want to enable alerts to be delivered when a cluster scan completes, you need to ensure that [Rancher's Monitoring and Alerting](https://ranchermanager.docs.rancher.com/how-to-guides/advanced-user-guides/monitoring-alerting-guides) application is pre-installed and the [Receivers and Routes](https://ranchermanager.docs.rancher.com/how-to-guides/advanced-user-guides/monitoring-v2-configuration-guides/advanced-configuration/alertmanager) are configured to send out alerts.
     - Additionally, you need to set `alerts: true` in the Values YAML while installing or upgrading this chart.
+
+
+## CIS Kubernetes Benchmark support
+
+kube-bench runs industry standard benchmark tests for Kubernetes. Most of our supported benchmarks are defined in either of the following:
+
+    | Source | Kubernetes Benchmark | kube-bench config | Kubernetes versions |
+    |--------|---------------------|-------------------|--------------------|
+    | CIS    | 1.9                 | cis-1.9           | 1.27-1.29          |
+    | CIS    | 1.10                | cis-1.10          | 1.28-1.31          |
+    | CIS    | GKE 1.6.0             | gke-1.6           | GKE                |
+    | CIS    | AKS 1.6.0             | aks-1.6           | AKS                |
+    | CIS    | EKS 1.6.0             | eks-1.6           | EKS                |
