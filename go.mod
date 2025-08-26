@@ -2,7 +2,7 @@ module github.com/rancher/compliance-operator
 
 go 1.24.4
 
-toolchain go1.24.6
+toolchain go1.25.0
 
 require (
 	github.com/blang/semver v3.5.1+incompatible
