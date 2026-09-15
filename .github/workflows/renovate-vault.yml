@@ -31,6 +31,21 @@ on:
         required: false
         default: ".github/renovate.json"
         type: string
+      minimumReleaseAge:
+        description: "Override minimumReleaseAge for a one-time run (e.g., '0 days' to disable delay)"
+        required: false
+        default: "null"
+        type: string
+      dryRun:
+        description: "Perform a dry run without creating/updating/deleting branches and PRs"
+        required: false
+        default: "null"
+        type: choice
+        options:
+          - "null"
+          - "extract"
+          - "lookup"
+          - "full"
 
   schedule:
     - cron: '30 4,6 * * 2-4'
@@ -43,9 +58,11 @@ jobs:
   call-workflow:
     uses: rancher/renovate-config/.github/workflows/renovate-vault.yml@84b669f244ddd0f5fbc7c8f8f63f70820b0c9602 # release
     with:
-      configMigration: ${{ inputs.configMigration || 'true' }}
-      logLevel: ${{ inputs.logLevel || 'info' }}
-      overrideSchedule: ${{ github.event.inputs.overrideSchedule == 'true' && '{''schedule'':null}' || '' }}
-      renovateConfig: ${{ inputs.renovateConfig || '.github/renovate.json' }}
+      configMigration: ${{ github.event.inputs.configMigration || 'true' }}
+      logLevel: ${{ github.event.inputs.logLevel || 'info' }}
+      overrideSchedule: ${{ github.event.inputs.overrideSchedule || 'false' }}
+      renovateConfig: ${{ github.event.inputs.renovateConfig || '.github/renovate.json' }}
+      minimumReleaseAge: ${{ github.event.inputs.minimumReleaseAge || 'null' }}
+      dryRun: ${{ github.event.inputs.dryRun || 'null' }}
     secrets:
       override-token: "${{ secrets.RENOVATE_FORK_GH_TOKEN || '' }}"
