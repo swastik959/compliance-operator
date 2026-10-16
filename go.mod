@@ -11,16 +11,16 @@ require (
 	github.com/prometheus/client_golang v1.23.2
 	github.com/rancher/kubernetes-provider-detector v0.1.5
 	github.com/rancher/lasso v0.2.7
-	github.com/rancher/security-scan v0.8.10
+	github.com/rancher/security-scan v0.8.11-rc.1
 	github.com/rancher/wrangler/v3 v3.5.1
 	github.com/robfig/cron v1.2.0
 	github.com/sirupsen/logrus v1.9.4
 	github.com/urfave/cli/v3 v3.5.0
 	golang.org/x/crypto/x509roots/fallback v0.0.0-20251023013721-017a1aaa2d99
-	k8s.io/api v0.36.3
-	k8s.io/apiextensions-apiserver v0.35.0
-	k8s.io/apimachinery v0.36.3
-	k8s.io/client-go v0.36.3
+	k8s.io/api v0.36.5
+	k8s.io/apiextensions-apiserver v0.35.9
+	k8s.io/apimachinery v0.36.5
+	k8s.io/client-go v0.36.5
 )
 
 require (
@@ -82,7 +82,7 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/code-generator v0.35.0 // indirect
+	k8s.io/code-generator v0.35.9 // indirect
 	k8s.io/gengo v0.0.0-20250130153323-76c5745d3511 // indirect
 	k8s.io/gengo/v2 v2.0.0-20250922181213-ec3ebc5fd46b // indirect
 	k8s.io/klog/v2 v2.140.0 // indirect
