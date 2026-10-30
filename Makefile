@@ -59,9 +59,8 @@ generate: ## Run code generation logic.
 
 validate: validate-lint generate validate-dirty ## Run validation checks.
 
-# Cold Go caches on small CI runners need several minutes to load all packages.
 validate-lint: $(GOLANGCI)
-	$(GOLANGCI) run --timeout=10m
+	$(GOLANGCI) run --timeout=2m
 
 validate-dirty:
 ifdef DIRTY

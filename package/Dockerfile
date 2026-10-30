@@ -4,21 +4,33 @@ FROM --platform=$BUILDPLATFORM rancher/mirrored-tonistiigi-xx:1.6.1 AS xx
 # Minimal BCI base image, as recommended by RFD 0070.
 FROM registry.suse.com/bci/bci-nano:16.0 AS base
 
-# Builds with the Go compiler from BCI golang, which is a deviation from
-# RFD 0070 (rancher/rancher#57914). Pinned to MAJOR.MINOR.PATCH, matching
-# go.mod, so the toolchain is deterministic and bumped by Renovate.
-FROM --platform=$BUILDPLATFORM registry.suse.com/bci/golang:1.27.2 AS builder
+# The AppCo Go image has no package manager, so the extra tools needed by
+# the build (make) and by xx (file, flock, sed, grep) are installed from BCI
+# base.
+# Its SLE version must match the one AppCo Go is based on.
+FROM --platform=$BUILDPLATFORM registry.suse.com/bci/bci-base:15.7 AS tools
+RUN zypper --non-interactive refresh && \
+    zypper --non-interactive --installroot /chroot install --no-recommends \
+        make file sed grep util-linux
 
 # Besides the binary, the final image only adds a nobody user/group entry,
 # so that the UID it runs as (65534) resolves to a named user, as in other
 # BCI images. bci-nano does not define it and has no shell to add it, so
 # the files are prepared here.
+FROM --platform=$BUILDPLATFORM registry.suse.com/bci/bci-base:15.7 AS user-setup
 COPY --from=base /etc/group /final/etc/group
 RUN echo "nobody:x:65534:" >> /final/etc/group && \
     install -dv -m 0755 /final/var/lib/nobody
 
 # Differs from BCI, by removing /bin/bash from root:
 RUN printf "root:x:0:0:root:/root:/usr/bin/false\nnobody:x:65534:65534:nobody:/var/lib/nobody:/usr/bin/false\n" > /final/etc/passwd
+
+# Builds with the Go compiler from the AppCo Go image, as recommended by
+# RFD 0070. Pinned to MAJOR.MINOR.PATCH, matching go.mod, so the toolchain
+# is deterministic and bumped by Renovate.
+FROM --platform=$BUILDPLATFORM registry.suse.com/rancher/appco-go:1.27.2 AS builder
+
+COPY --from=tools /chroot /
 
 WORKDIR /src
 COPY go.sum \
@@ -49,7 +61,7 @@ RUN xx-verify --static /out/compliance-operator
 
 FROM base AS final
 
-COPY --from=builder /final/ /
+COPY --from=user-setup /final/ /
 COPY --from=builder /out/compliance-operator /usr/bin/compliance-operator
 
 # Aligns nobody user ID with BCI.

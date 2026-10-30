@@ -9,8 +9,7 @@ permissions: {}
 
 jobs:
   publish:
-    # Requires a Docker daemon, so it runs on a non-containerized runner.
-    runs-on: runs-on,runner=4cpu-linux-x64,image=ubuntu22-full-x64,run-id=${{ github.run_id }}
+    runs-on: ubuntu-latest
     permissions:
       contents: read
       # write is needed for:
@@ -64,8 +63,7 @@ jobs:
         prime-password: ${{ env.PRIME_REGISTRY_PASSWORD }}
 
   publish-assets:
-    runs-on: org-${{ github.repository_owner_id }}-amd64-k8s
-    container: ghcr.io/rancher/ci-image/go1.27 # zizmor: ignore[unpinned-images] -- internal image is exempt from this rule
+    runs-on: ubuntu-latest
     permissions:
       contents: write # Upload artefacts to release.
 
